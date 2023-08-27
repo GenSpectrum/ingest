@@ -1,0 +1,9 @@
+# Project-specific
+data/
+*.shelf.*
+
+# Snakemake
+.snakemake/
+
+# Editors
+.idea/
