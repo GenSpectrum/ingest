@@ -1,15 +1,15 @@
 package org.genspectrum.ingest.utils
 
-import com.alibaba.fastjson2.JSONObject
 import com.alibaba.fastjson2.parseObject
+import org.genspectrum.ingest.MutableEntry
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 
-class NdjsonReader(inputStream: InputStream) : Iterator<JSONObject>, Iterable<JSONObject>, AutoCloseable {
+class EntryNdjsonReader(inputStream: InputStream) : Iterator<MutableEntry>, Iterable<MutableEntry>, AutoCloseable {
 
     private val reader: BufferedReader
-    private var nextEntry: JSONObject? = null
+    private var nextEntry: MutableEntry? = null
 
     init {
         reader = BufferedReader(InputStreamReader(inputStream))
@@ -20,21 +20,21 @@ class NdjsonReader(inputStream: InputStream) : Iterator<JSONObject>, Iterable<JS
         return nextEntry != null
     }
 
-    override fun next(): JSONObject {
+    override fun next(): MutableEntry {
         val entry = nextEntry ?: throw NoSuchElementException("No element available")
         read()
         return entry
     }
 
     private fun read() {
-        nextEntry = reader.readLine()?.parseObject()
+        nextEntry = reader.readLine()?.parseObject<MutableEntry>()
     }
 
     override fun close() {
         reader.close()
     }
 
-    override fun iterator(): Iterator<JSONObject> {
+    override fun iterator(): Iterator<MutableEntry> {
         return this
     }
 
