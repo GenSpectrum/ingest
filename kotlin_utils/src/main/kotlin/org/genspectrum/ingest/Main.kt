@@ -23,26 +23,6 @@ class FastaToNdjsonCommand : CliktCommand(name = "fasta-to-ndjson") {
     }
 }
 
-class TsvToNdjsonCommand : CliktCommand(name = "tsv-to-ndjson") {
-    private val inputPath by argument("input_file")
-    private val outputPath by argument("output_file")
-
-    override fun run() {
-        TsvToNdjson().run(Path(inputPath), Path(outputPath))
-    }
-}
-
-class SortNdjsonCommand : CliktCommand(name = "sort-ndjson") {
-    private val sortBy by argument("sort_by")
-    private val inputPath by argument("input_file")
-    private val outputPath by argument("output_file")
-    private val workdirPath by argument("workdir")
-
-    override fun run() {
-        SortNdjson().run(sortBy, Path(inputPath), Path(outputPath), Path(workdirPath))
-    }
-}
-
 class JoinSC2NextstrainOpenDataCommand : CliktCommand(name = "join-sc2-nextstrain-open-data") {
     private val metadataPath by option("--sorted-metadata").required()
     private val sequencesPath by option("--sorted-sequences").required()
@@ -63,15 +43,45 @@ class JoinSC2NextstrainOpenDataCommand : CliktCommand(name = "join-sc2-nextstrai
     }
 }
 
+class NoopNdjsonCommand : CliktCommand(name = "noop-ndjson") {
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+
+    override fun run() {
+        NoopNdjson().run(Path(inputPath), Path(outputPath))
+    }
+}
+
+class SortNdjsonCommand : CliktCommand(name = "sort-ndjson") {
+    private val sortBy by argument("sort_by")
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+    private val workdirPath by argument("workdir")
+
+    override fun run() {
+        SortNdjson().run(sortBy, Path(inputPath), Path(outputPath), Path(workdirPath))
+    }
+}
+
+class TsvToNdjsonCommand : CliktCommand(name = "tsv-to-ndjson") {
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+
+    override fun run() {
+        TsvToNdjson().run(Path(inputPath), Path(outputPath))
+    }
+}
+
 fun main(args: Array<String>) {
     println("Program started at ${LocalDateTime.now()}")
     val elapsed = measureTime {
         Ingest()
             .subcommands(
                 FastaToNdjsonCommand(),
-                TsvToNdjsonCommand(),
+                JoinSC2NextstrainOpenDataCommand(),
+                NoopNdjsonCommand(),
                 SortNdjsonCommand(),
-                JoinSC2NextstrainOpenDataCommand()
+                TsvToNdjsonCommand(),
             )
             .main(args)
     }
