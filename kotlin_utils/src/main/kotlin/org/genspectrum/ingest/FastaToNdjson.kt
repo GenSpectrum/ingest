@@ -8,11 +8,11 @@ import java.nio.file.Path
 
 class FastaToNdjson {
 
-    fun run(input: Path, output: Path) {
+    fun run(idColumn: String, input: Path, output: Path) {
         FastaReader(readFile(input)).use { reader ->
             writeFile(output).use { outputStream ->
                 reader.forEach {
-                    outputStream.write(it.toJSONByteArray())
+                    outputStream.write(mapOf(idColumn to it.sampleName, "sequence" to it.sequence).toJSONByteArray())
                     outputStream.write("\n".toByteArray())
                 }
 
