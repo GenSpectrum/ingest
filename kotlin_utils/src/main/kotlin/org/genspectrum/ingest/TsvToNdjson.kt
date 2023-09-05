@@ -1,9 +1,9 @@
 package org.genspectrum.ingest
 
-import com.alibaba.fastjson2.toJSONByteArray
 import org.apache.commons.csv.CSVFormat
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.writeFile
+import org.genspectrum.ingest.utils.writeNdjson
 import java.nio.file.Path
 
 class TsvToNdjson {
@@ -18,14 +18,13 @@ class TsvToNdjson {
             val headers = headerRecord.map { it }
 
             // Read, transform, and write data
-            writeFile(output).use { outputStream ->
-                iterator.forEachRemaining {
-                    val entry = mutableMapOf<String, String>()
-                    headers.withIndex().forEach{ (index, header) -> entry[header] = it.get(index)}
-                    outputStream.write(entry.toJSONByteArray())
-                    outputStream.write("\n".toByteArray())
-                }
+            val writer = writeNdjson<Any>(writeFile(output))
+            iterator.forEachRemaining {
+                val entry = mutableMapOf<String, String>()
+                headers.withIndex().forEach{ (index, header) -> entry[header] = it.get(index)}
+                writer.write(entry)
             }
+            writer.close()
         }
     }
 

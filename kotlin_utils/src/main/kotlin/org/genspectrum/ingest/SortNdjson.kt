@@ -1,8 +1,9 @@
 package org.genspectrum.ingest
 
 import com.alibaba.fastjson2.JSON
-import org.genspectrum.ingest.utils.NdjsonReader
+import com.alibaba.fastjson2.JSONObject
 import org.genspectrum.ingest.utils.readFile
+import org.genspectrum.ingest.utils.readNdjson
 import org.genspectrum.ingest.utils.writeFile
 import java.io.BufferedReader
 import java.io.FileInputStream
@@ -32,9 +33,7 @@ class SortNdjson {
     }
 
     private fun getSortValues(sortBy: String, file: Path): List<String> {
-        NdjsonReader(readFile(file)).use { reader ->
-            return reader.map { it.getString(sortBy) }
-        }
+        return readNdjson<JSONObject>(readFile(file)).toList().map { it.getString(sortBy) }
     }
 
     private fun splitEntriesIntoBuckets(sortKeys: List<String>, maxSizePerBucket: Int): List<Bucket> {

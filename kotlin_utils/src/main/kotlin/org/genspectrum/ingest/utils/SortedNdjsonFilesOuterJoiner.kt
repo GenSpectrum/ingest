@@ -4,19 +4,19 @@ import com.alibaba.fastjson2.JSONObject
 import java.io.InputStream
 
 class SortedNdjsonFilesOuterJoiner(private val joinColumn: String, inputStreams: List<InputStream>) :
-    Iterator<Pair<String, List<JSONObject?>>>, Iterable<Pair<String, List<JSONObject?>>>, AutoCloseable {
+    Iterator<Pair<String, List<JSONObject?>>>, Iterable<Pair<String, List<JSONObject?>>> {
 
-    private val readers: List<NdjsonReader>
+    private val readers: List<Iterator<JSONObject>>
     private val currentEntries: MutableList<KeyValue?>
     private var nextEntry: Pair<String, List<JSONObject?>>? = null
 
     init {
-        readers = inputStreams.map { NdjsonReader(it) }
+        readers = inputStreams.map { readNdjson<JSONObject>(it).iterator() }
         currentEntries = readers.map { getNextFromFile(it) }.toMutableList()
         read()
     }
 
-    private fun getNextFromFile(reader: NdjsonReader): KeyValue? {
+    private fun getNextFromFile(reader: Iterator<JSONObject>): KeyValue? {
         return try {
             val entry = reader.next()
             val joinValue = entry.getString(joinColumn)
@@ -50,10 +50,6 @@ class SortedNdjsonFilesOuterJoiner(private val joinColumn: String, inputStreams:
                 currentEntries[i] = getNextFromFile(readers[i])
             }
         }
-    }
-
-    override fun close() {
-        readers.forEach { it.close() }
     }
 
     override fun iterator(): Iterator<Pair<String, List<JSONObject?>>> {
