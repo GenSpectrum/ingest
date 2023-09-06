@@ -28,6 +28,17 @@ class JoinSC2NextstrainOpenDataCommand : CliktCommand(name = "join-sc2-nextstrai
     private val sequencesPath by option("--sorted-sequences").required()
     private val alignedPath by option("--sorted-aligned").required()
     private val translationEPath by option("--sorted-translation-e").required()
+    private val translationMPath by option("--sorted-translation-m").required()
+    private val translationNPath by option("--sorted-translation-n").required()
+    private val translationORF1aPath by option("--sorted-translation-orf1a").required()
+    private val translationORF1bPath by option("--sorted-translation-orf1b").required()
+    private val translationORF3aPath by option("--sorted-translation-orf3a").required()
+    private val translationORF6Path by option("--sorted-translation-orf6").required()
+    private val translationORF7aPath by option("--sorted-translation-orf7a").required()
+    private val translationORF7bPath by option("--sorted-translation-orf7b").required()
+    private val translationORF8Path by option("--sorted-translation-orf8").required()
+    private val translationORF9bPath by option("--sorted-translation-orf9b").required()
+    private val translationSPath by option("--sorted-translation-s").required()
     private val outputPath by option("--output").required()
 
     override fun run() {
@@ -36,7 +47,18 @@ class JoinSC2NextstrainOpenDataCommand : CliktCommand(name = "join-sc2-nextstrai
             Path(sequencesPath),
             Path(alignedPath),
             listOf(
-                "E" to Path(translationEPath)
+                "E" to Path(translationEPath),
+                "M" to Path(translationMPath),
+                "N" to Path(translationNPath),
+                "ORF1a" to Path(translationORF1aPath),
+                "ORF1b" to Path(translationORF1bPath),
+                "ORF3a" to Path(translationORF3aPath),
+                "ORF6" to Path(translationORF6Path),
+                "ORF7a" to Path(translationORF7aPath),
+                "ORF7b" to Path(translationORF7bPath),
+                "ORF8" to Path(translationORF8Path),
+                "ORF9b" to Path(translationORF9bPath),
+                "S" to Path(translationSPath)
             ),
             Path(outputPath)
         )
@@ -72,18 +94,23 @@ class TsvToNdjsonCommand : CliktCommand(name = "tsv-to-ndjson") {
     }
 }
 
-fun main(args: Array<String>) {
-    println("Program started at ${LocalDateTime.now()}")
-    val elapsed = measureTime {
-        Ingest()
-            .subcommands(
-                FastaToNdjsonCommand(),
-                JoinSC2NextstrainOpenDataCommand(),
-                NoopNdjsonCommand(),
-                SortNdjsonCommand(),
-                TsvToNdjsonCommand(),
-            )
-            .main(args)
+class Main {
+    companion object {
+        @JvmStatic
+        fun main(args : Array<String>) {
+            println("Program started at ${LocalDateTime.now()}")
+            val elapsed = measureTime {
+                Ingest()
+                    .subcommands(
+                        FastaToNdjsonCommand(),
+                        JoinSC2NextstrainOpenDataCommand(),
+                        NoopNdjsonCommand(),
+                        SortNdjsonCommand(),
+                        TsvToNdjsonCommand(),
+                    )
+                    .main(args)
+            }
+            println("Elapsed: $elapsed")
+        }
     }
-    println("Elapsed: $elapsed")
 }

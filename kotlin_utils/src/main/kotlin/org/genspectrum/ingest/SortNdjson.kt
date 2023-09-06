@@ -17,7 +17,7 @@ class SortNdjson {
 
     fun run(sortBy: String, input: Path, output: Path, workdir: Path) {
         val sortKeys = getSortValues(sortBy, input)
-        val buckets = splitEntriesIntoBuckets(sortKeys, 300000)
+        val buckets = splitEntriesIntoBuckets(sortKeys, 100000)
         val smallFiles = splitIntoSmallFiles(sortBy, input, workdir, buckets)
         val sortedSmallFiles = smallFiles.map { sortSmallFile(sortBy, it) }
         mergeSmallFiles(sortedSmallFiles, output)
@@ -33,7 +33,7 @@ class SortNdjson {
     }
 
     private fun getSortValues(sortBy: String, file: Path): List<String> {
-        return readNdjson<JSONObject>(readFile(file)).toList().map { it.getString(sortBy) }
+        return readNdjson<JSONObject>(readFile(file)).map { it.getString(sortBy) }.toList()
     }
 
     private fun splitEntriesIntoBuckets(sortKeys: List<String>, maxSizePerBucket: Int): List<Bucket> {

@@ -1,12 +1,1 @@
 include: "rules/sc2_open.smk"
-
-
-
-
-rule test:
-    input:
-        "data/sc2_open/translation_E.fasta.zst"
-    output:
-        "data/output.txt"
-    shell:
-        "ls data >> {output}"
