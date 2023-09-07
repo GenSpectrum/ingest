@@ -3,7 +3,11 @@ package org.genspectrum.ingest.utils
 import com.alibaba.fastjson2.JSONObject
 import java.io.InputStream
 
-class SortedNdjsonFilesOuterJoiner(private val joinColumn: String, inputStreams: List<InputStream>) :
+class SortedNdjsonFilesOuterJoiner(
+    private val joinColumn: String,
+    private val alternativeJoinColumn: String,
+    inputStreams: List<InputStream>
+) :
     Iterator<Pair<String, List<JSONObject?>>>, Iterable<Pair<String, List<JSONObject?>>> {
 
     private val readers: List<Iterator<JSONObject>>
@@ -19,7 +23,7 @@ class SortedNdjsonFilesOuterJoiner(private val joinColumn: String, inputStreams:
     private fun getNextFromFile(reader: Iterator<JSONObject>): KeyValue? {
         return try {
             val entry = reader.next()
-            val joinValue = entry.getString(joinColumn)
+            val joinValue = entry.getString(joinColumn) ?: entry.getString(alternativeJoinColumn)
             joinValue to entry
         } catch (e: NoSuchElementException) {
             null
