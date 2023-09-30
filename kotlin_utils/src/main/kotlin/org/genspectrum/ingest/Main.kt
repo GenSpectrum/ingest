@@ -10,6 +10,7 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import org.genspectrum.ingest.entry.*
 import org.genspectrum.ingest.proc.*
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.readNdjson
@@ -39,7 +40,7 @@ class CompareHashesCommand : CliktCommand(name = "compare-hashes") {
     private val outputPath by argument("output_file")
 
     override fun run() {
-        val results = CompareHashes().run(
+        val results = compareHashes(
             getHashEntries(oldHashesPath),
             getHashEntries(newHashesPath)
         )
@@ -64,7 +65,7 @@ class ExtractAddedOrChangedCommand : CliktCommand(name = "extract-added-or-chang
     private val outputPath by argument("output_file")
 
     override fun run() {
-        ExtractAddedOrChanged().run(idColumn, Path(changeComparisonPath), Path(inputPath), Path(outputPath))
+        extractAddedOrChanged(idColumn, Path(changeComparisonPath), Path(inputPath), Path(outputPath))
     }
 }
 
@@ -74,7 +75,7 @@ class FastaToNdjsonCommand : CliktCommand(name = "fasta-to-ndjson") {
     private val outputPath by argument("output_file")
 
     override fun run() {
-        FastaToNdjson().run(idColumn, Path(inputPath), Path(outputPath))
+        fastaToNdjson(idColumn, Path(inputPath), Path(outputPath))
     }
 }
 
@@ -98,7 +99,7 @@ class JoinSC2NextstrainOpenDataCommand : CliktCommand(name = "join-sc2-nextstrai
     private val outputPath by option("--output").required()
 
     override fun run() {
-        JoinSC2NextstrainOpenData().run(
+        joinSC2NextstrainOpenData(
             Path(metadataPath),
             Path(nextcladePath),
             Path(sequencesPath),
@@ -127,7 +128,7 @@ class NoopNdjsonCommand : CliktCommand(name = "noop-ndjson") {
     private val outputPath by argument("output_file")
 
     override fun run() {
-        NoopNdjson().run(Path(inputPath), Path(outputPath))
+        noopNdjson(Path(inputPath), Path(outputPath))
     }
 }
 
@@ -201,7 +202,7 @@ class SortNdjsonCommand : CliktCommand(name = "sort-ndjson") {
     private val workdirPath by argument("workdir")
 
     override fun run() {
-        SortNdjson().run(sortBy, Path(inputPath), Path(outputPath), Path(workdirPath))
+        sortNdjson(sortBy, Path(inputPath), Path(outputPath), Path(workdirPath))
     }
 }
 
@@ -211,7 +212,7 @@ class TransformSC2GisaidBasicsCommand : CliktCommand(name = "transform-sc2-gisai
     private val hashOutputPath by argument("hash_output_file")
 
     override fun run() {
-        TransformSC2GisaidBasics().run(Path(inputPath), Path(outputPath), Path(hashOutputPath))
+        transformSC2GisaidBasics(Path(inputPath), Path(outputPath), Path(hashOutputPath))
     }
 }
 
@@ -220,7 +221,7 @@ class TsvToNdjsonCommand : CliktCommand(name = "tsv-to-ndjson") {
     private val outputPath by argument("output_file")
 
     override fun run() {
-        TsvToNdjson().run(Path(inputPath), Path(outputPath))
+        tsvToNdjson(Path(inputPath), Path(outputPath))
     }
 }
 
@@ -231,7 +232,7 @@ class UnalignedNucleotideSequencesToFastaCommand : CliktCommand(name = "unaligne
     private val outputPath by argument("output_file")
 
     override fun run() {
-        UnalignedNucleotideSequencesToFasta().run(idColumn, sequenceName, Path(inputPath), Path(outputPath))
+        unalignedNucleotideSequencesToFasta(idColumn, sequenceName, Path(inputPath), Path(outputPath))
     }
 }
 

@@ -1,4 +1,4 @@
-package org.genspectrum.ingest
+package org.genspectrum.ingest.entry
 
 data class MutableEntry(
     var id: String,

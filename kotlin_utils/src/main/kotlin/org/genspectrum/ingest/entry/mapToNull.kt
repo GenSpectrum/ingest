@@ -1,7 +1,5 @@
-package org.genspectrum.ingest.proc
+package org.genspectrum.ingest.entry
 
-
-import org.genspectrum.ingest.MutableEntry
 
 /**
  * This function replaces given values with null. By default, it replaces "" and "?".

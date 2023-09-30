@@ -1,6 +1,4 @@
-package org.genspectrum.ingest.proc
-
-import org.genspectrum.ingest.MutableEntry
+package org.genspectrum.ingest.entry
 
 fun MutableEntry.selectMetadata(fields: Set<String>) {
     for (key in this.metadata.keys.toList()) {

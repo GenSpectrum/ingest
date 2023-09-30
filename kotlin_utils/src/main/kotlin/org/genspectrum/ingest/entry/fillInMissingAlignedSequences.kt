@@ -1,7 +1,6 @@
-package org.genspectrum.ingest.proc
+package org.genspectrum.ingest.entry
 
 import org.genspectrum.ingest.AlignedGenome
-import org.genspectrum.ingest.MutableEntry
 
 /**
  * This function replaces all aligned sequences that are null with the value provided in "template". This is useful

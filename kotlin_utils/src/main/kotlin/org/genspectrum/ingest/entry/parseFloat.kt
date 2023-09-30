@@ -1,6 +1,4 @@
-package org.genspectrum.ingest.proc
-
-import org.genspectrum.ingest.MutableEntry
+package org.genspectrum.ingest.entry
 
 
 fun MutableEntry.parseFloat(fieldName: String) {

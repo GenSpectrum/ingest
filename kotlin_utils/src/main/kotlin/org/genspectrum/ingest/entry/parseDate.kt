@@ -1,6 +1,5 @@
-package org.genspectrum.ingest.proc
+package org.genspectrum.ingest.entry
 
-import org.genspectrum.ingest.MutableEntry
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import java.util.regex.Pattern

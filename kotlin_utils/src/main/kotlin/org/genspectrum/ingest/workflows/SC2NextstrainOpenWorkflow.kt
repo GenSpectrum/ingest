@@ -1,9 +1,9 @@
 package org.genspectrum.ingest.workflows
 
-import org.genspectrum.ingest.FastaToNdjson
-import org.genspectrum.ingest.JoinSC2NextstrainOpenData
-import org.genspectrum.ingest.SortNdjson
-import org.genspectrum.ingest.TsvToNdjson
+import org.genspectrum.ingest.proc.fastaToNdjson
+import org.genspectrum.ingest.proc.joinSC2NextstrainOpenData
+import org.genspectrum.ingest.proc.sortNdjson
+import org.genspectrum.ingest.proc.tsvToNdjson
 import org.genspectrum.ingest.utils.runParallel
 import java.net.URL
 import java.nio.file.Files
@@ -24,9 +24,9 @@ class SC2NextstrainOpenWorkflow {
             .map { (original, ndjson) ->
                 {
                     if (original.endsWith(".tsv.zst")) {
-                        TsvToNdjson().run(fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
+                        tsvToNdjson(fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
                     } else {
-                        FastaToNdjson().run("strain", fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
+                        fastaToNdjson("strain", fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
                     }
                 }
             }
@@ -44,7 +44,7 @@ class SC2NextstrainOpenWorkflow {
                     }
                     val subWorkdir = sortedPath.resolve("workdir_$file")
                     Files.createDirectories(subWorkdir)
-                    SortNdjson().run(sortBy, ndjsonPath.resolve(file), sortedPath.resolve(file), subWorkdir)
+                    sortNdjson(sortBy, ndjsonPath.resolve(file), sortedPath.resolve(file), subWorkdir)
                     Files.walk(subWorkdir).sorted(Comparator.reverseOrder()).forEach(Files::delete)
                 }
             }
@@ -52,7 +52,7 @@ class SC2NextstrainOpenWorkflow {
 
         val joinedPath = workdir.resolve("04_joined_and_cleaned")
         Files.createDirectories(joinedPath)
-        JoinSC2NextstrainOpenData().run(
+        joinSC2NextstrainOpenData(
             sortedPath.resolve(OpenFiles.metadata + ".ndjson.zst"),
             sortedPath.resolve(OpenFiles.nextclade + ".ndjson.zst"),
             sortedPath.resolve(OpenFiles.sequences + ".ndjson.zst"),

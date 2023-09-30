@@ -1,6 +1,4 @@
-package org.genspectrum.ingest.proc
-
-import org.genspectrum.ingest.MutableEntry
+package org.genspectrum.ingest.entry
 
 fun MutableEntry.renameMetadata(oldToNewNames: Iterable<Pair<String, String>>) {
     for ((old, new) in oldToNewNames) {
