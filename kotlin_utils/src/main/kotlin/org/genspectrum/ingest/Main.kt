@@ -15,12 +15,21 @@ import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.readNdjson
 import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
+import org.genspectrum.ingest.workflows.SC2NextstrainOpenWorkflow
 import java.time.LocalDateTime
 import kotlin.io.path.Path
 import kotlin.time.measureTime
 
 class Ingest : CliktCommand() {
     override fun run() = Unit
+}
+
+class SC2NextstrainOpenIngestCommand : CliktCommand(name = "ingest-sc2-nextstrain-open") {
+    private val workdirPath by argument("workdir")
+
+    override fun run() {
+        SC2NextstrainOpenWorkflow().run(Path(workdirPath))
+    }
 }
 
 class CompareHashesCommand : CliktCommand(name = "compare-hashes") {
@@ -234,6 +243,7 @@ class Main {
             val elapsed = measureTime {
                 Ingest()
                     .subcommands(
+                        SC2NextstrainOpenIngestCommand(),
                         CompareHashesCommand(),
                         ExtractAddedOrChangedCommand(),
                         FastaToNdjsonCommand(),

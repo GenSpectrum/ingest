@@ -1,10 +1,12 @@
 package org.genspectrum.ingest
 
+import org.genspectrum.ingest.proc.*
 import org.genspectrum.ingest.utils.SortedNdjsonFilesOuterJoiner
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 class JoinSC2NextstrainOpenData {
 
@@ -60,8 +62,117 @@ class JoinSC2NextstrainOpenData {
                 mutableMapOf("main" to nucleotideInsertions),
                 aminoAcidInsertions
             )
+            clean(joined)
+            if (joined.metadata["strain"] == null) {
+                continue
+            }
             writer.write(joined)
         }
         writer.close()
+    }
+}
+
+private val oldToNewMetadataNames = listOf(
+    "gisaid_epi_isl" to "gisaidEpiIsl",
+    "genbank_accession" to "genbankAccession",
+    "genbank_accession_rev" to "genbankAccessionRev",
+    "sra_accession" to "sraAccession",
+    "region_exposure" to "regionExposure",
+    "country_exposure" to "countryExposure",
+    "division_exposure" to "divisionExposure",
+    "Nextstrain_clade" to "nextstrainClade",
+    "pango_lineage" to "pangoLineage",
+    "GISAID_clade" to "gisaidClade",
+    "originating_lab" to "originatingLab",
+    "submitting_lab" to "submittingLab",
+    "date_submitted" to "dateSubmitted",
+    "date_updated" to "dateUpdated",
+    "sampling_strategy" to "samplingStrategy",
+    "clade_nextstrain" to "nextstrainClade",
+    "clade_who" to "whoClade",
+    "Nextclade_pango" to "nextcladePangoLineage",
+    "immune_escape" to "immuneEscape",
+    "ace2_binding" to "ace2Binding",
+    "QC_overall_score" to "nextcladeQcOverallScore",
+    "qc.missingData.score" to "nextcladeQcMissingDataScore",
+    "qc.mixedSites.score" to "nextcladeQcMixedSites",
+    "qc.privateMutations.score" to "nextcladeQcPrivateMutationsScore",
+    "qc.snpClusters.score" to "nextcladeQcSnpClustersScore",
+    "qc.frameShifts.score" to "nextcladeQcFrameShiftsScore",
+    "qc.stopCodons.score" to "nextcladeQcStopCodonsScore",
+    "coverage" to "nextcladeCoverage"
+)
+
+private val selectedMetadata = setOf(
+    "strain",
+    "genbankAccession",
+    "genbankAccessionRev",
+    "sraAccession",
+    "gisaidEpiIsl",
+    "database",
+    "date",
+    "dateSubmitted",
+    "dateUpdated",
+    "region",
+    "country",
+    "division",
+    "location",
+    "regionExposure",
+    "countryExposure",
+    "divisionExposure",
+    "host",
+    "age",
+    "sex",
+    "samplingStrategy",
+    "pangoLineage",
+    "nextcladePangoLineage",
+    "nextstrainClade",
+    "whoClade",
+    "gisaidClade",
+    "ace2Binding",
+    "immuneEscape",
+    "originatingLab",
+    "submittingLab",
+    "authors",
+    "nextcladeQcOverallScore",
+    "nextcladeQcMissingDataScore",
+    "nextcladeQcMixedSites",
+    "nextcladeQcPrivateMutationsScore",
+    "nextcladeQcSnpClustersScore",
+    "nextcladeQcFrameShiftsScore",
+    "nextcladeQcStopCodonsScore",
+    "nextcladeCoverage"
+)
+
+private val parseDateFields = listOf("date", "dateSubmitted", "dateUpdated")
+
+private val parseIntegerFields = listOf("age")
+
+private val parseFloatFields = listOf(
+    "ace2binding",
+    "immuneEscape",
+    "nextcladeQcOverallScore",
+    "nextcladeQcMissingDataScore",
+    "nextcladeQcMixedSitesScore",
+    "nextcladeQcPrivateMutationsScore",
+    "nextcladeQcSnpClustersScore",
+    "nextcladeQcFrameShiftsScore",
+    "nextcladeQcStopCodonsScore",
+    "nextcladeCoverage"
+)
+
+private val fillInMissingAlignedSequencesTemplate =
+    AlignedGenome.loadFromFile(Path("reference-genome.sc2.json"))
+        .replaceContentWithUnknown()
+
+private fun clean(entry: MutableEntry) {
+    entry.apply {
+        renameMetadata(oldToNewMetadataNames)
+        selectMetadata(selectedMetadata)
+        mapToNull()
+        parseDateFields.forEach { parseDate(it) }
+        parseIntegerFields.forEach { parseInteger(it) }
+        parseFloatFields.forEach { parseFloat(it) }
+        fillInMissingAlignedSequences(fillInMissingAlignedSequencesTemplate)
     }
 }
