@@ -1,6 +1,7 @@
 package org.genspectrum.ingest
 
 data class MutableEntry(
+    var id: String,
     var metadata: MutableMap<String, Any?>,
     var unalignedNucleotideSequences: MutableMap<String, String?>,
     var alignedNucleotideSequences: MutableMap<String, String?>,

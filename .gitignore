@@ -1,6 +1,6 @@
 # Project-specific
 data/
-*.shelf.*
+external_tools/
 
 # Snakemake
 .snakemake/

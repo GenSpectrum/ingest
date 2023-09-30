@@ -5,20 +5,34 @@ import com.alibaba.fastjson2.parseObject
 import com.alibaba.fastjson2.toJSONByteArray
 import com.github.luben.zstd.ZstdInputStream
 import com.github.luben.zstd.ZstdOutputStream
+import org.tukaani.xz.LZMA2Options
+import org.tukaani.xz.XZInputStream
+import org.tukaani.xz.XZOutputStream
 import java.io.*
 import java.nio.file.Path
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import kotlin.io.path.extension
 
 fun readFile(file: Path): InputStream {
-    return ZstdInputStream(FileInputStream(file.toFile()))
+    var inputStream: InputStream = FileInputStream(file.toFile())
+    if (file.extension == "zst") {
+        inputStream = ZstdInputStream(inputStream)
+    } else if (file.extension == "xz") {
+        inputStream = XZInputStream(inputStream)
+    }
+    return inputStream
 }
 
 fun writeFile(file: Path): OutputStream {
-    val fileOut = FileOutputStream(file.toFile())
-    val zstdOut = ZstdOutputStream(fileOut)
-    return BufferedOutputStream(zstdOut)
+    var outputStream: OutputStream = BufferedOutputStream(FileOutputStream(file.toFile()))
+    if (file.extension == "zst") {
+        outputStream = ZstdOutputStream(outputStream)
+    } else if (file.extension == "xz") {
+        outputStream = XZOutputStream(outputStream, LZMA2Options())
+    }
+    return BufferedOutputStream(outputStream)
 }
 
 inline fun <reified T> readNdjson(inputStream: InputStream, bufferQueueSize:Int = 100): Sequence<T> {
@@ -49,7 +63,11 @@ inline fun <reified T> readNdjson(inputStream: InputStream, bufferQueueSize:Int 
     }
 }
 
-fun <T> writeNdjson(outputStream: OutputStream, bufferQueueSize: Int = 100): WriteNdjsonResponse<T> {
+fun <T> writeNdjson(
+    outputStream: OutputStream,
+    returnHash: ((entry: T, hash: String) -> Unit)? = null,
+    bufferQueueSize: Int = 100
+): WriteNdjsonResponse<T> {
     val queue = LinkedBlockingQueue<T>(bufferQueueSize)
     var closed = false
 
@@ -57,8 +75,16 @@ fun <T> writeNdjson(outputStream: OutputStream, bufferQueueSize: Int = 100): Wri
         outputStream.use { outputStream ->
             while (queue.isNotEmpty() || !closed) {
                 val entry = queue.poll(1, TimeUnit.SECONDS) ?: continue
-                outputStream.write(entry.toJSONByteArray(JSONWriter.Feature.WriteNulls))
+                val entrySerialized = entry.toJSONByteArray(
+                    JSONWriter.Feature.WriteNulls,
+                    JSONWriter.Feature.MapSortField
+                )
+                outputStream.write(entrySerialized)
                 outputStream.write("\n".toByteArray())
+                if (returnHash != null) {
+                    val hash = hashMd5(entrySerialized)
+                    returnHash(entry, hash)
+                }
             }
         }
     }

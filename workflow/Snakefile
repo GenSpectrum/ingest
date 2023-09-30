@@ -1,1 +1,2 @@
 include: "rules/sc2_open.smk"
+include: "rules/sc2_gisaid.smk"

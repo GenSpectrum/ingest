@@ -15,6 +15,7 @@ dependencies {
     implementation("com.github.ajalt.clikt:clikt:4.2.0")
     implementation("com.github.luben:zstd-jni:1.5.5-5")
     implementation("org.apache.commons:commons-csv:1.10.0")
+    implementation("org.tukaani:xz:1.9")
     testImplementation(kotlin("test"))
 }
 

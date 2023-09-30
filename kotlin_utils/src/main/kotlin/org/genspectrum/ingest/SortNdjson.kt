@@ -84,7 +84,7 @@ class SortNdjson {
     }
 
     private fun sortSmallFile(sortBy: String, smallFile: Path): Path {
-        val outputFile = Path("${smallFile.absolutePathString()}.sorted")
+        val outputFile = smallFile.resolveSibling("sorted_${smallFile.fileName}")
         val entries = mutableListOf<Pair<String, String>>()
         BufferedReader(InputStreamReader(readFile(smallFile))).forEachLine { line ->
             val sortKey = JSON.parseObject(line).getString(sortBy)

@@ -1,5 +1,8 @@
 package org.genspectrum.ingest
 
+import com.alibaba.fastjson2.JSONObject
+import com.alibaba.fastjson2.JSONWriter
+import com.alibaba.fastjson2.toJSONByteArray
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -14,11 +17,46 @@ import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
 import java.time.LocalDateTime
 import kotlin.io.path.Path
-import kotlin.system.exitProcess
 import kotlin.time.measureTime
 
 class Ingest : CliktCommand() {
     override fun run() = Unit
+}
+
+class CompareHashesCommand : CliktCommand(name = "compare-hashes") {
+    private val idColumn by argument("id_column")
+    private val oldHashesPath by argument("old_hashes")
+    private val newHashesPath by argument("new_hashes")
+    private val outputPath by argument("output_file")
+
+    override fun run() {
+        val results = CompareHashes().run(
+            getHashEntries(oldHashesPath),
+            getHashEntries(newHashesPath)
+        )
+        println("Added: ${results.added.size}, changed: ${results.changed.size}, " +
+                "deleted: ${results.deleted.size}, unchanged: ${results.unchanged.size}, ")
+        writeFile(Path(outputPath)).use { outputStream ->
+            outputStream.write(results.toJSONByteArray(JSONWriter.Feature.LargeObject))
+            outputStream.write("\n".toByteArray())
+        }
+    }
+
+    private fun getHashEntries(path: String): List<HashEntry> {
+        val reader = readNdjson<JSONObject>(readFile(Path(path)))
+        return reader.map { HashEntry(it.getString(idColumn), it.getString("md5")) }.toList()
+    }
+}
+
+class ExtractAddedOrChangedCommand : CliktCommand(name = "extract-added-or-changed") {
+    private val idColumn by argument("id_column")
+    private val changeComparisonPath by argument("change_comparison_file")
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+
+    override fun run() {
+        ExtractAddedOrChanged().run(idColumn, Path(changeComparisonPath), Path(inputPath), Path(outputPath))
+    }
 }
 
 class FastaToNdjsonCommand : CliktCommand(name = "fasta-to-ndjson") {
@@ -158,12 +196,33 @@ class SortNdjsonCommand : CliktCommand(name = "sort-ndjson") {
     }
 }
 
+class TransformSC2GisaidBasicsCommand : CliktCommand(name = "transform-sc2-gisaid-basics") {
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+    private val hashOutputPath by argument("hash_output_file")
+
+    override fun run() {
+        TransformSC2GisaidBasics().run(Path(inputPath), Path(outputPath), Path(hashOutputPath))
+    }
+}
+
 class TsvToNdjsonCommand : CliktCommand(name = "tsv-to-ndjson") {
     private val inputPath by argument("input_file")
     private val outputPath by argument("output_file")
 
     override fun run() {
         TsvToNdjson().run(Path(inputPath), Path(outputPath))
+    }
+}
+
+class UnalignedNucleotideSequencesToFastaCommand : CliktCommand(name = "unaligned-nucleotide-sequences-to-fasta") {
+    private val idColumn by argument("id_column")
+    private val sequenceName by argument("sequence_name")
+    private val inputPath by argument("input_file")
+    private val outputPath by argument("output_file")
+
+    override fun run() {
+        UnalignedNucleotideSequencesToFasta().run(idColumn, sequenceName, Path(inputPath), Path(outputPath))
     }
 }
 
@@ -175,12 +234,16 @@ class Main {
             val elapsed = measureTime {
                 Ingest()
                     .subcommands(
+                        CompareHashesCommand(),
+                        ExtractAddedOrChangedCommand(),
                         FastaToNdjsonCommand(),
                         JoinSC2NextstrainOpenDataCommand(),
                         NoopNdjsonCommand(),
                         ProcessCommand(),
                         SortNdjsonCommand(),
+                        TransformSC2GisaidBasicsCommand(),
                         TsvToNdjsonCommand(),
+                        UnalignedNucleotideSequencesToFastaCommand(),
                     )
                     .main(args)
             }
