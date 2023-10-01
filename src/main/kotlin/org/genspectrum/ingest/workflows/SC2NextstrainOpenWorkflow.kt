@@ -1,5 +1,8 @@
 package org.genspectrum.ingest.workflows
 
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.proc.fastaToNdjson
 import org.genspectrum.ingest.proc.joinSC2NextstrainOpenData
 import org.genspectrum.ingest.proc.sortNdjson
@@ -9,115 +12,118 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.time.LocalDateTime
 
 class SC2NextstrainOpenWorkflow {
 
     fun run(workdir: Path) {
         val fromSourcePath = workdir.resolve("01_from_source")
         Files.createDirectories(fromSourcePath)
-        runParallel(allFilesOriginalEndings.map { { downloadFromNextstrain(it, fromSourcePath) } }, 3)
+        val sourceFiles = runParallel(OpenFiles.entries.map { { it to downloadFromNextstrain(it, fromSourcePath) } }, 3).toMap()
 
         val ndjsonPath = workdir.resolve("02_ndjson")
         Files.createDirectories(ndjsonPath)
-        val transformToNdjsonTasks = allFilesOriginalEndings.zip(allFilesNdjsonEndings)
-            .map { (original, ndjson) ->
-                {
-                    if (original.endsWith(".tsv.zst")) {
-                        tsvToNdjson(fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
-                    } else {
-                        fastaToNdjson("strain", fromSourcePath.resolve(original), ndjsonPath.resolve(ndjson))
-                    }
+        val transformToNdjsonTasks = sourceFiles.map { (name, file) ->
+            when (file.type) {
+                FileType.TSV -> {
+                    { name to tsvToNdjson(file, ndjsonPath) }
                 }
+                FileType.FASTA -> {
+                    { name to fastaToNdjson("strain", file, ndjsonPath) }
+                }
+                else -> throw IllegalStateException()
             }
-        runParallel(transformToNdjsonTasks, 4)
+        }
+        val ndjsonFiles = runParallel(transformToNdjsonTasks, 4).toMap()
 
         val sortedPath = workdir.resolve("03_sorted")
         Files.createDirectories(sortedPath)
-        val sortNdjsonTasks = allFilesNdjsonEndings
-            .map { file ->
-                {
-                    val sortBy = if (file.startsWith("nextclade")) {
-                        "seqName"
-                    } else {
-                        "strain"
-                    }
-                    val subWorkdir = sortedPath.resolve("workdir_$file")
-                    Files.createDirectories(subWorkdir)
-                    sortNdjson(sortBy, ndjsonPath.resolve(file), sortedPath.resolve(file), subWorkdir)
-                    Files.walk(subWorkdir).sorted(Comparator.reverseOrder()).forEach(Files::delete)
+        val sortNdjsonTasks = ndjsonFiles.map { (name, file) ->
+            {
+                val sortBy = if (name == OpenFiles.NEXTCLADE) {
+                    "seqName"
+                } else {
+                    "strain"
                 }
+                val subWorkdir = sortedPath.resolve("workdir_${file.name}")
+                Files.createDirectories(subWorkdir)
+                val sortedFile = sortNdjson(sortBy, subWorkdir, file, sortedPath)
+                Files.walk(subWorkdir).sorted(Comparator.reverseOrder()).forEach(Files::delete)
+                name to sortedFile
             }
-        runParallel(sortNdjsonTasks, 2)
+        }
+        val sortedFiles = runParallel(sortNdjsonTasks, 2).toMap()
 
         val joinedPath = workdir.resolve("04_joined_and_cleaned")
         Files.createDirectories(joinedPath)
         joinSC2NextstrainOpenData(
-            sortedPath.resolve(OpenFiles.metadata + ".ndjson.zst"),
-            sortedPath.resolve(OpenFiles.nextclade + ".ndjson.zst"),
-            sortedPath.resolve(OpenFiles.sequences + ".ndjson.zst"),
-            sortedPath.resolve(OpenFiles.aligned + ".ndjson.zst"),
+            sortedFiles[OpenFiles.METADATA]!!,
+            sortedFiles[OpenFiles.NEXTCLADE]!!,
+            sortedFiles[OpenFiles.SEQUENCES]!!,
+            sortedFiles[OpenFiles.ALIGNED]!!,
             listOf(
-                "E" to sortedPath.resolve(OpenFiles.translationE + ".ndjson.zst"),
-                "M" to sortedPath.resolve(OpenFiles.translationM + ".ndjson.zst"),
-                "N" to sortedPath.resolve(OpenFiles.translationN + ".ndjson.zst"),
-                "ORF1a" to sortedPath.resolve(OpenFiles.translationORF1a + ".ndjson.zst"),
-                "ORF1b" to sortedPath.resolve(OpenFiles.translationORF1b + ".ndjson.zst"),
-                "ORF3a" to sortedPath.resolve(OpenFiles.translationORF3a + ".ndjson.zst"),
-                "ORF6" to sortedPath.resolve(OpenFiles.translationORF6 + ".ndjson.zst"),
-                "ORF7a" to sortedPath.resolve(OpenFiles.translationORF7a + ".ndjson.zst"),
-                "ORF7b" to sortedPath.resolve(OpenFiles.translationORF7b + ".ndjson.zst"),
-                "ORF8" to sortedPath.resolve(OpenFiles.translationORF8 + ".ndjson.zst"),
-                "ORF9b" to sortedPath.resolve(OpenFiles.translationORF9b + ".ndjson.zst"),
-                "S" to sortedPath.resolve(OpenFiles.translationS + ".ndjson.zst")
+                "E" to sortedFiles[OpenFiles.TRANSLATION_E]!!,
+                "M" to sortedFiles[OpenFiles.TRANSLATION_M]!!,
+                "N" to sortedFiles[OpenFiles.TRANSLATION_N]!!,
+                "ORF1a" to sortedFiles[OpenFiles.TRANSLATION_ORF1a]!!,
+                "ORF1b" to sortedFiles[OpenFiles.TRANSLATION_ORF1b]!!,
+                "ORF3a" to sortedFiles[OpenFiles.TRANSLATION_ORF3a]!!,
+                "ORF6" to sortedFiles[OpenFiles.TRANSLATION_ORF6]!!,
+                "ORF7a" to sortedFiles[OpenFiles.TRANSLATION_ORF7a]!!,
+                "ORF7b" to sortedFiles[OpenFiles.TRANSLATION_ORF7b]!!,
+                "ORF8" to sortedFiles[OpenFiles.TRANSLATION_ORF8]!!,
+                "ORF9b" to sortedFiles[OpenFiles.TRANSLATION_ORF9b]!!,
+                "S" to sortedFiles[OpenFiles.TRANSLATION_S]!!
             ),
-            joinedPath.resolve("processed.ndjson.zst")
+            joinedPath,
+            "processed"
         )
     }
 
-    private fun downloadFromNextstrain(filename: String, outputDirectory: Path) {
-        val url = URL("https://data.nextstrain.org/files/ncov/open/$filename")
-        val outputPath = outputDirectory.resolve(filename)
-
-        println("${LocalDateTime.now()} Start downloading $url")
-        url.openStream().use { input ->
-            Files.copy(input, outputPath, StandardCopyOption.REPLACE_EXISTING)
+    private fun downloadFromNextstrain(file: OpenFiles, outputDirectory: Path): File {
+        val tsvTemplate = File("-", outputDirectory, false, FileType.TSV, Compression.ZSTD)
+        val fastaTemplate = File("-", outputDirectory, false, FileType.FASTA, Compression.ZSTD)
+        val outputFile = when(file) {
+            OpenFiles.METADATA -> tsvTemplate.copy(name = "metadata")
+            OpenFiles.NEXTCLADE -> tsvTemplate.copy(name = "nextclade")
+            OpenFiles.SEQUENCES -> fastaTemplate.copy(name = "sequences")
+            OpenFiles.ALIGNED -> fastaTemplate.copy(name = "aligned")
+            OpenFiles.TRANSLATION_E -> fastaTemplate.copy(name = "translation_E")
+            OpenFiles.TRANSLATION_M -> fastaTemplate.copy(name = "translation_M")
+            OpenFiles.TRANSLATION_N -> fastaTemplate.copy(name = "translation_N")
+            OpenFiles.TRANSLATION_ORF1a -> fastaTemplate.copy(name = "translation_ORF1a")
+            OpenFiles.TRANSLATION_ORF1b -> fastaTemplate.copy(name = "translation_ORF1b")
+            OpenFiles.TRANSLATION_ORF3a -> fastaTemplate.copy(name = "translation_ORF3a")
+            OpenFiles.TRANSLATION_ORF6 -> fastaTemplate.copy(name = "translation_ORF6")
+            OpenFiles.TRANSLATION_ORF7a -> fastaTemplate.copy(name = "translation_ORF7a")
+            OpenFiles.TRANSLATION_ORF7b -> fastaTemplate.copy(name = "translation_ORF7b")
+            OpenFiles.TRANSLATION_ORF8 -> fastaTemplate.copy(name = "translation_ORF8")
+            OpenFiles.TRANSLATION_ORF9b -> fastaTemplate.copy(name = "translation_ORF9b")
+            OpenFiles.TRANSLATION_S -> fastaTemplate.copy(name = "translation_S")
         }
-        println("${LocalDateTime.now()} Finished downloading $url")
+        val url = URL("https://data.nextstrain.org/files/ncov/open/${outputFile.name}")
+        url.openStream().use { input ->
+            Files.copy(input, outputFile.path, StandardCopyOption.REPLACE_EXISTING)
+        }
+        return outputFile
     }
 
 }
 
-private object OpenFiles {
-    const val metadata = "metadata"
-    const val nextclade = "nextclade"
-    const val sequences = "sequences"
-    const val aligned = "aligned"
-    const val translationE = "translation_E"
-    const val translationM = "translation_M"
-    const val translationN = "translation_N"
-    const val translationORF1a = "translation_ORF1a"
-    const val translationORF1b = "translation_ORF1b"
-    const val translationORF3a = "translation_ORF3a"
-    const val translationORF6 = "translation_ORF6"
-    const val translationORF7a = "translation_ORF7a"
-    const val translationORF7b = "translation_ORF7b"
-    const val translationORF8 = "translation_ORF8"
-    const val translationORF9b = "translation_ORF9b"
-    const val translationS = "translation_S"
+private enum class OpenFiles {
+    METADATA,
+    NEXTCLADE,
+    SEQUENCES,
+    ALIGNED,
+    TRANSLATION_E,
+    TRANSLATION_M,
+    TRANSLATION_N,
+    TRANSLATION_ORF1a,
+    TRANSLATION_ORF1b,
+    TRANSLATION_ORF3a,
+    TRANSLATION_ORF6,
+    TRANSLATION_ORF7a,
+    TRANSLATION_ORF7b,
+    TRANSLATION_ORF8,
+    TRANSLATION_ORF9b,
+    TRANSLATION_S
 }
-
-private val tsvFiles = listOf(OpenFiles.metadata, OpenFiles.nextclade)
-
-private val nucleotideSequenceFiles = listOf(OpenFiles.sequences, OpenFiles.aligned)
-
-private val translationFiles = listOf(
-    OpenFiles.translationE, OpenFiles.translationM, OpenFiles.translationN, OpenFiles.translationORF1a,
-    OpenFiles.translationORF1b, OpenFiles.translationORF3a, OpenFiles.translationORF6, OpenFiles.translationORF7a,
-    OpenFiles.translationORF7b, OpenFiles.translationORF8, OpenFiles.translationORF9b, OpenFiles.translationS
-)
-
-val allFilesOriginalEndings = tsvFiles.map { "${it}.tsv.zst" } +
-        (nucleotideSequenceFiles + translationFiles).map { "${it}.fasta.zst" }
-
-val allFilesNdjsonEndings = (tsvFiles + nucleotideSequenceFiles + translationFiles).map { "${it}.ndjson.zst" }

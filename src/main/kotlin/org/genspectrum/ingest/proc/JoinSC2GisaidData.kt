@@ -3,6 +3,9 @@ package org.genspectrum.ingest.proc
 import com.alibaba.fastjson2.to
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.entry.*
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.utils.SortedNdjsonFilesOuterJoiner
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.writeFile
@@ -11,20 +14,22 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 
 fun joinSC2GisaidData(
-    sortedProvisionFile: Path,
-    sortedNextcladeFile: Path,
-    sortedAlignedFile: Path,
-    sortedTranslationFiles: List<Pair<String, Path>>,
-    outputPath: Path
-) {
-    val translationNames = sortedTranslationFiles.map { it.first }
-    val translationPaths = sortedTranslationFiles.map { it.second }
-    val paths = mutableListOf(sortedProvisionFile, sortedNextcladeFile, sortedAlignedFile)
-    paths.addAll(translationPaths)
-    val inputStreams = paths.map { readFile(it) }
+    provisionFile: File,
+    nextcladeFile: File,
+    alignedFile: File,
+    translationFiles: List<Pair<String, File>>,
+    outputDirectory: Path,
+    outputName: String
+): File {
+    val allFiles = listOf(provisionFile, nextcladeFile, alignedFile) + translationFiles.map { it.second }
+    require(allFiles.all { it.sorted && it.type == FileType.NDJSON })
+    val outputFile = File(outputName, outputDirectory, true, FileType.NDJSON, Compression.ZSTD)
+
+    val translationNames = translationFiles.map { it.first }
+    val inputStreams = allFiles.map { readFile(it.path) }
 
     val joiner = SortedNdjsonFilesOuterJoiner("id", "seqName", inputStreams)
-    val writer = writeNdjson<Any>(writeFile(outputPath))
+    val writer = writeNdjson<Any>(writeFile(outputFile.path))
     for ((_, values) in joiner) {
         val provisionEntry = values[0]?.to<MutableEntry>() ?: continue
         val nextcladeEntry = values[1]?.toMap()
@@ -41,7 +46,7 @@ fun joinSC2GisaidData(
             nucleotideInsertions.addAll(nucleotideInsertionsText.split(","))
         }
         val aminoAcidInsertionsText = nextcladeEntry?.get("aaInsertions") as String?
-        val aminoAcidInsertionsLists = sortedTranslationFiles.map { it.first to mutableListOf<String>() }
+        val aminoAcidInsertionsLists = translationFiles.map { it.first to mutableListOf<String>() }
             .toTypedArray()
         val aminoAcidInsertions = mutableMapOf(*aminoAcidInsertionsLists)
         if (!aminoAcidInsertionsText.isNullOrBlank()) {
@@ -62,6 +67,8 @@ fun joinSC2GisaidData(
         writer.write(provisionEntry)
     }
     writer.close()
+
+    return outputFile
 }
 
 private val oldToNewMetadataNames = listOf(

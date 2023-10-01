@@ -3,17 +3,24 @@ package org.genspectrum.ingest.proc
 import com.alibaba.fastjson2.JSONObject
 import org.genspectrum.ingest.entry.MutableEntry
 import org.genspectrum.ingest.entry.mapToNull
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.readNdjson
 import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
 import java.nio.file.Path
 
-fun transformSC2GisaidBasics(inputFile: Path, outputFile: Path, hashOutputFile: Path) {
-    val reader = readNdjson<JSONObject>(readFile(inputFile))
-    val hashFileWriter = writeNdjson<Any>(writeFile(hashOutputFile))
+fun transformSC2GisaidBasics(inputFile: File, outputDirectory: Path): TransformSC2GisaidBasicsResult {
+    require(inputFile.type == FileType.NDJSON)
+    val outputFile = File(inputFile.name, outputDirectory, inputFile.sorted, FileType.NDJSON, Compression.ZSTD)
+    val hashOutputFile = outputFile.copy(name = inputFile.name + ".hashes")
+
+    val reader = readNdjson<JSONObject>(readFile(inputFile.path))
+    val hashFileWriter = writeNdjson<Any>(writeFile(hashOutputFile.path))
     val writer = writeNdjson<MutableEntry>(
-        writeFile(outputFile),
+        writeFile(outputFile.path),
         fun(entry, hash) {
             val hashEntry = mapOf(
                 "gisaidEpiIsl" to entry.metadata["gisaidEpiIsl"],
@@ -65,5 +72,11 @@ fun transformSC2GisaidBasics(inputFile: Path, outputFile: Path, hashOutputFile: 
     }
     writer.close()
     hashFileWriter.close()
+
+    return TransformSC2GisaidBasicsResult(outputFile, hashOutputFile)
 }
 
+data class TransformSC2GisaidBasicsResult (
+    val dataFile: File,
+    val hashesFile: File
+)

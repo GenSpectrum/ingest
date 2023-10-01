@@ -2,6 +2,9 @@ package org.genspectrum.ingest.proc
 
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.entry.*
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.utils.SortedNdjsonFilesOuterJoiner
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.writeFile
@@ -10,21 +13,25 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 
 fun joinSC2NextstrainOpenData(
-    sortedMetadataFile: Path,
-    sortedNextcladeFile: Path,
-    sortedSequencesFile: Path,
-    sortedAlignedFile: Path,
-    sortedTranslationFiles: List<Pair<String, Path>>,
-    outputPath: Path
-) {
+    sortedMetadataFile: File,
+    sortedNextcladeFile: File,
+    sortedSequencesFile: File,
+    sortedAlignedFile: File,
+    sortedTranslationFiles: List<Pair<String, File>>,
+    outputDirectory: Path,
+    outputName: String,
+    outputCompression: Compression = Compression.ZSTD
+): File {
+    val allInputFiles = listOf(sortedMetadataFile, sortedNextcladeFile, sortedSequencesFile, sortedAlignedFile) +
+            sortedTranslationFiles.map { it.second }
+    require(allInputFiles.all { it.sorted && it.type == FileType.NDJSON })
+    val outputFile = File(outputName, outputDirectory, true, FileType.NDJSON, outputCompression)
+
     val translationNames = sortedTranslationFiles.map { it.first }
-    val translationPaths = sortedTranslationFiles.map { it.second }
-    val paths = mutableListOf(sortedMetadataFile, sortedNextcladeFile, sortedSequencesFile, sortedAlignedFile)
-    paths.addAll(translationPaths)
-    val inputStreams = paths.map { readFile(it) }
+    val inputStreams = allInputFiles.map { readFile(it.path) }
 
     val joiner = SortedNdjsonFilesOuterJoiner("strain", "seqName", inputStreams)
-    val writer = writeNdjson<Any>(writeFile(outputPath))
+    val writer = writeNdjson<Any>(writeFile(outputFile.path))
     for ((_, values) in joiner) {
         val metadataEntry = (values[0]?.toMap() ?: continue).toMutableMap()
         val nextcladeEntry = values[1]?.toMap()
@@ -68,6 +75,7 @@ fun joinSC2NextstrainOpenData(
         writer.write(joined)
     }
     writer.close()
+    return outputFile
 }
 
 private val oldToNewMetadataNames = listOf(

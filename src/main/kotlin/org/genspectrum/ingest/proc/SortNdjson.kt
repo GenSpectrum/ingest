@@ -2,6 +2,9 @@ package org.genspectrum.ingest.proc
 
 import com.alibaba.fastjson2.JSON
 import com.alibaba.fastjson2.JSONObject
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.readNdjson
 import org.genspectrum.ingest.utils.writeFile
@@ -12,12 +15,23 @@ import java.io.InputStreamReader
 import java.nio.file.Path
 
 
-fun sortNdjson(sortBy: String, input: Path, output: Path, workdir: Path) {
-    val sortKeys = getSortValues(sortBy, input)
+fun sortNdjson(
+    sortBy: String,
+    workdir: Path,
+    input: File,
+    outputDirectory: Path = input.directory,
+    outputName: String = input.name,
+    outputCompression: Compression = input.compression
+): File {
+    require(input.type == FileType.NDJSON && !input.sorted)
+    val outputFile = File(outputName, outputDirectory, true, FileType.NDJSON, outputCompression)
+
+    val sortKeys = getSortValues(sortBy, input.path)
     val buckets = splitEntriesIntoBuckets(sortKeys, 100000)
-    val smallFiles = splitIntoSmallFiles(sortBy, input, workdir, buckets)
+    val smallFiles = splitIntoSmallFiles(sortBy, input.path, workdir, buckets)
     val sortedSmallFiles = smallFiles.map { sortSmallFile(sortBy, it) }
-    mergeSmallFiles(sortedSmallFiles, output)
+    mergeSmallFiles(sortedSmallFiles, outputFile.path)
+    return outputFile
 }
 
 private fun findBucket(sampleName: String, buckets: List<Bucket>): Int? {
