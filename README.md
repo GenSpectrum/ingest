@@ -6,6 +6,7 @@ The program uses `ndjson.zst` as the default format. One JSON entry could look a
 
 ```json
 {
+    "id": "MW12345",
     "metadata": {
         "genbankAccession": "MW12345",
         "sequencingDate": "2022-08-15",
