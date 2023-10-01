@@ -46,6 +46,7 @@ fun transformSC2GisaidBasics(inputFile: Path, outputFile: Path, hashOutputFile: 
                 "age" to gisaidEntry.getString("covv_patient_age"),
                 "sex" to gisaidEntry.getString("covv_gender"),
                 "samplingStrategy" to gisaidEntry.getString("covv_sampling_strategy"),
+                "pangoLineage" to gisaidEntry.getString("covv_lineage"),
                 "region" to region,
                 "country" to country,
                 "division" to divison,

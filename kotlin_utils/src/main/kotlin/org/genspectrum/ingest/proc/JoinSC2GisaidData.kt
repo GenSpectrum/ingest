@@ -1,12 +1,14 @@
 package org.genspectrum.ingest.proc
 
 import com.alibaba.fastjson2.to
-import org.genspectrum.ingest.entry.MutableEntry
+import org.genspectrum.ingest.AlignedGenome
+import org.genspectrum.ingest.entry.*
 import org.genspectrum.ingest.utils.SortedNdjsonFilesOuterJoiner
 import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
 import java.nio.file.Path
+import kotlin.io.path.Path
 
 fun joinSC2GisaidData(
     sortedProvisionFile: Path,
@@ -30,12 +32,8 @@ fun joinSC2GisaidData(
             provisionEntry.metadata += nextcladeEntry
         }
 
-
-        val metadataEntry = (values[0]?.toMap() ?: continue).toMutableMap()
-
-        val sequenceEntry = values[2]
-        val alignedEntry = values[3]
-        val translationSequences = values.subList(4, values.size).withIndex()
+        val alignedEntry = values[2]
+        val translationSequences = values.subList(3, values.size).withIndex()
             .map { (index, entry) -> translationNames[index] to entry?.getString("sequence") }
         val nucleotideInsertionsText = nextcladeEntry?.get("insertions") as String?
         val nucleotideInsertions = mutableListOf<String>()
@@ -54,16 +52,115 @@ fun joinSC2GisaidData(
                     aminoAcidInsertions[gene]!!.add(insertion)
                 }
         }
-        val joined = MutableEntry(
-            metadataEntry["strain"] as String,
-            metadataEntry,
-            mutableMapOf("main" to sequenceEntry?.getString("sequence")),
-            mutableMapOf("main" to alignedEntry?.getString("sequence")),
-            translationSequences.toMap().toMutableMap(),
-            mutableMapOf("main" to nucleotideInsertions),
-            aminoAcidInsertions
-        )
-        writer.write(joined)
+
+        provisionEntry.alignedNucleotideSequences = mutableMapOf("main" to alignedEntry?.getString("sequence"))
+        provisionEntry.alignedAminoAcidSequences = translationSequences.toMap().toMutableMap()
+        provisionEntry.nucleotideInsertions = mutableMapOf("main" to nucleotideInsertions)
+        provisionEntry.aminoAcidInsertions = aminoAcidInsertions
+        clean(provisionEntry)
+
+        writer.write(provisionEntry)
     }
     writer.close()
+}
+
+private val oldToNewMetadataNames = listOf(
+    "clade_nextstrain" to "nextstrainClade",
+    "clade_who" to "whoClade",
+    "Nextclade_pango" to "nextcladePangoLineage",
+    "qc.overallScore" to "nextcladeQcOverallScore",
+    "qc.missingData.score" to "nextcladeQcMissingDataScore",
+    "qc.mixedSites.score" to "nextcladeQcMixedSites",
+    "qc.privateMutations.score" to "nextcladeQcPrivateMutationsScore",
+    "qc.snpClusters.score" to "nextcladeQcSnpClustersScore",
+    "qc.frameShifts.score" to "nextcladeQcFrameShiftsScore",
+    "qc.stopCodons.score" to "nextcladeQcStopCodonsScore",
+    "coverage" to "nextcladeCoverage"
+)
+
+private val selectedMetadata = setOf(
+    "strain",
+    "genbankAccession",
+    "genbankAccessionRev",
+    "sraAccession",
+    "gisaidEpiIsl",
+    "database",
+    "date",
+    "dateSubmitted",
+    "dateUpdated",
+    "region",
+    "country",
+    "division",
+    "location",
+    "regionExposure",
+    "countryExposure",
+    "divisionExposure",
+    "host",
+    "age",
+    "sex",
+    "samplingStrategy",
+    "pangoLineage",
+    "nextcladePangoLineage",
+    "nextstrainClade",
+    "whoClade",
+    "gisaidClade",
+    "ace2Binding",
+    "immuneEscape",
+    "originatingLab",
+    "submittingLab",
+    "authors",
+    "nextcladeQcOverallScore",
+    "nextcladeQcMissingDataScore",
+    "nextcladeQcMixedSites",
+    "nextcladeQcPrivateMutationsScore",
+    "nextcladeQcSnpClustersScore",
+    "nextcladeQcFrameShiftsScore",
+    "nextcladeQcStopCodonsScore",
+    "nextcladeCoverage"
+)
+
+private val parseDateFields = listOf("date", "dateSubmitted", "dateUpdated")
+
+private val parseIntegerFields = listOf("age")
+
+private val parseFloatFields = listOf(
+    "ace2Binding",
+    "immuneEscape",
+    "nextcladeQcOverallScore",
+    "nextcladeQcMissingDataScore",
+    "nextcladeQcMixedSitesScore",
+    "nextcladeQcPrivateMutationsScore",
+    "nextcladeQcSnpClustersScore",
+    "nextcladeQcFrameShiftsScore",
+    "nextcladeQcStopCodonsScore",
+    "nextcladeCoverage"
+)
+
+private val fillInMissingAlignedSequencesTemplate =
+    AlignedGenome.loadFromFile(Path("reference-genome.sc2.json"))
+        .replaceContentWithUnknown()
+
+private fun clean(entry: MutableEntry) {
+    entry.apply {
+        renameMetadata(oldToNewMetadataNames)
+        selectMetadata(selectedMetadata)
+        mapToNull()
+        parseDateFields.forEach { parseDate(it) }
+        parseIntegerFields.forEach { parseInteger(it, true) }
+        parseFloatFields.forEach { parseFloat(it) }
+        fillInMissingAlignedSequences(fillInMissingAlignedSequencesTemplate)
+
+        metadata["genbankAccession"] = null
+        metadata["sraAccession"] = null
+        metadata["regionExposure"] = null
+        metadata["countryExposure"] = null
+        metadata["divisionExposure"] = null
+        metadata["gisaidClade"] = null
+        metadata["ace2Binding"] = null
+        metadata["immuneEscape"] = null
+        metadata["originatingLab"] = null
+        metadata["submittingLab"] = null
+        metadata["authors"] = null
+        metadata["dateUpdated"] = null
+    }
 }

@@ -147,7 +147,7 @@ private val parseDateFields = listOf("date", "dateSubmitted", "dateUpdated")
 private val parseIntegerFields = listOf("age")
 
 private val parseFloatFields = listOf(
-    "ace2binding",
+    "ace2Binding",
     "immuneEscape",
     "nextcladeQcOverallScore",
     "nextcladeQcMissingDataScore",

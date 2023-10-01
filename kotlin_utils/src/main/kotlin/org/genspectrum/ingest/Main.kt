@@ -16,6 +16,7 @@ import org.genspectrum.ingest.utils.readFile
 import org.genspectrum.ingest.utils.readNdjson
 import org.genspectrum.ingest.utils.writeFile
 import org.genspectrum.ingest.utils.writeNdjson
+import org.genspectrum.ingest.workflows.SC2GisaidWorkflow
 import org.genspectrum.ingest.workflows.SC2NextstrainOpenWorkflow
 import java.time.LocalDateTime
 import kotlin.io.path.Path
@@ -30,6 +31,22 @@ class SC2NextstrainOpenIngestCommand : CliktCommand(name = "ingest-sc2-nextstrai
 
     override fun run() {
         SC2NextstrainOpenWorkflow().run(Path(workdirPath))
+    }
+}
+
+class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
+    private val workdirPath by argument("workdir")
+    private val url by argument("url")
+    private val user by argument("user")
+    private val password by argument("password")
+
+    override fun run() {
+        SC2GisaidWorkflow().run(
+            Path(workdirPath),
+            url, user, password,
+            Path(workdirPath).resolve("00_archive/TODO"),
+            Path(workdirPath).resolve("00_archive/provision.00.hashes.ndjson.zst")
+        )
     }
 }
 
@@ -245,6 +262,7 @@ class Main {
                 Ingest()
                     .subcommands(
                         SC2NextstrainOpenIngestCommand(),
+                        SC2GisaidIngestCommand(),
                         CompareHashesCommand(),
                         ExtractAddedOrChangedCommand(),
                         FastaToNdjsonCommand(),
