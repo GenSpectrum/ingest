@@ -1,4 +1,4 @@
-package org.genspectrum.ingest.utils
+package org.genspectrum.ingest.util
 
 import com.alibaba.fastjson2.JSONObject
 import java.io.InputStream

@@ -1,4 +1,4 @@
-package org.genspectrum.ingest.utils
+package org.genspectrum.ingest.util
 
 import java.io.OutputStream
 

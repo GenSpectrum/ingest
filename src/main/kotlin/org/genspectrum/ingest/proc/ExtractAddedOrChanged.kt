@@ -5,10 +5,10 @@ import org.genspectrum.ingest.entry.MutableEntry
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.utils.readFile
-import org.genspectrum.ingest.utils.readNdjson
-import org.genspectrum.ingest.utils.writeFile
-import org.genspectrum.ingest.utils.writeNdjson
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.readNdjson
+import org.genspectrum.ingest.util.writeFile
+import org.genspectrum.ingest.util.writeNdjson
 import java.nio.file.Path
 
 fun extractAddedOrChanged(

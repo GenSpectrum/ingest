@@ -4,10 +4,10 @@ import org.genspectrum.ingest.entry.MutableEntry
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.utils.FastaEntry
-import org.genspectrum.ingest.utils.readFile
-import org.genspectrum.ingest.utils.readNdjson
-import org.genspectrum.ingest.utils.writeFile
+import org.genspectrum.ingest.util.FastaEntry
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.readNdjson
+import org.genspectrum.ingest.util.writeFile
 import java.nio.file.Path
 
 fun unalignedNucleotideSequencesToFasta(

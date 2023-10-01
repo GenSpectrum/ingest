@@ -1,10 +1,10 @@
 package org.genspectrum.ingest.proc
 
 import org.genspectrum.ingest.entry.MutableEntry
-import org.genspectrum.ingest.utils.readFile
-import org.genspectrum.ingest.utils.readNdjson
-import org.genspectrum.ingest.utils.writeFile
-import org.genspectrum.ingest.utils.writeNdjson
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.readNdjson
+import org.genspectrum.ingest.util.writeFile
+import org.genspectrum.ingest.util.writeNdjson
 import java.nio.file.Path
 
 /**

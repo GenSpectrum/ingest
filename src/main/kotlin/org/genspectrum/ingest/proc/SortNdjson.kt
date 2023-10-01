@@ -5,9 +5,9 @@ import com.alibaba.fastjson2.JSONObject
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.utils.readFile
-import org.genspectrum.ingest.utils.readNdjson
-import org.genspectrum.ingest.utils.writeFile
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.readNdjson
+import org.genspectrum.ingest.util.writeFile
 import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.FileOutputStream

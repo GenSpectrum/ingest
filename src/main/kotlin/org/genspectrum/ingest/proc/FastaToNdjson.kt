@@ -3,10 +3,10 @@ package org.genspectrum.ingest.proc
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.utils.FastaReader
-import org.genspectrum.ingest.utils.readFile
-import org.genspectrum.ingest.utils.writeFile
-import org.genspectrum.ingest.utils.writeNdjson
+import org.genspectrum.ingest.util.FastaReader
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.writeFile
+import org.genspectrum.ingest.util.writeNdjson
 import java.nio.file.Path
 
 fun fastaToNdjson(

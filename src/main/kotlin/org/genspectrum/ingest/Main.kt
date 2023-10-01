@@ -3,8 +3,8 @@ package org.genspectrum.ingest
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
-import org.genspectrum.ingest.workflows.SC2GisaidWorkflow
-import org.genspectrum.ingest.workflows.SC2NextstrainOpenWorkflow
+import org.genspectrum.ingest.workflow.runSC2GisaidWorkflow
+import org.genspectrum.ingest.workflow.runSC2NextstrainOpenWorkflow
 import java.time.LocalDateTime
 import kotlin.io.path.Path
 import kotlin.time.measureTime
@@ -17,7 +17,7 @@ class SC2NextstrainOpenIngestCommand : CliktCommand(name = "ingest-sc2-nextstrai
     private val workdirPath by argument("workdir")
 
     override fun run() {
-        SC2NextstrainOpenWorkflow().run(Path(workdirPath))
+        runSC2NextstrainOpenWorkflow(Path(workdirPath))
     }
 }
 
@@ -28,7 +28,7 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
     private val password by argument("password")
 
     override fun run() {
-        SC2GisaidWorkflow().run(
+        runSC2GisaidWorkflow(
             Path(workdirPath),
             url, user, password,
             Path(workdirPath).resolve("00_archive/TODO"),

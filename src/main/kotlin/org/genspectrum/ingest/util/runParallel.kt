@@ -1,4 +1,4 @@
-package org.genspectrum.ingest.utils
+package org.genspectrum.ingest.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
