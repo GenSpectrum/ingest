@@ -20,10 +20,10 @@ fun joinSC2NextstrainOpenData(
     sortedTranslationFiles: List<Pair<String, File>>,
     outputDirectory: Path,
     outputName: String,
-    outputCompression: Compression = Compression.ZSTD
+    outputCompression: Compression = Compression.ZSTD,
 ): File {
     val allInputFiles = listOf(sortedMetadataFile, sortedNextcladeFile, sortedSequencesFile, sortedAlignedFile) +
-            sortedTranslationFiles.map { it.second }
+        sortedTranslationFiles.map { it.second }
     require(allInputFiles.all { it.sorted && it.type == FileType.NDJSON })
     val outputFile = File(outputName, outputDirectory, true, FileType.NDJSON, outputCompression)
 
@@ -66,7 +66,7 @@ fun joinSC2NextstrainOpenData(
             mutableMapOf("main" to alignedEntry?.getString("sequence")),
             translationSequences.toMap().toMutableMap(),
             mutableMapOf("main" to nucleotideInsertions),
-            aminoAcidInsertions
+            aminoAcidInsertions,
         )
         clean(joined)
         if (joined.metadata["strain"] == null) {
@@ -106,7 +106,7 @@ private val oldToNewMetadataNames = listOf(
     "qc.snpClusters.score" to "nextcladeQcSnpClustersScore",
     "qc.frameShifts.score" to "nextcladeQcFrameShiftsScore",
     "qc.stopCodons.score" to "nextcladeQcStopCodonsScore",
-    "coverage" to "nextcladeCoverage"
+    "coverage" to "nextcladeCoverage",
 )
 
 private val selectedMetadata = setOf(
@@ -127,6 +127,9 @@ private val selectedMetadata = setOf(
     "countryExposure",
     "divisionExposure",
     "host",
+    "hospitalized",
+    "died",
+    "fullyVaccinated",
     "age",
     "sex",
     "samplingStrategy",
@@ -147,7 +150,13 @@ private val selectedMetadata = setOf(
     "nextcladeQcSnpClustersScore",
     "nextcladeQcFrameShiftsScore",
     "nextcladeQcStopCodonsScore",
-    "nextcladeCoverage"
+    "nextcladeCoverage",
+)
+
+private val metadataFieldsMapToNull = setOf(
+    "died",
+    "fullyVaccinated",
+    "hospitalized",
 )
 
 private val parseDateFields = listOf("date", "dateSubmitted", "dateUpdated")
@@ -164,7 +173,7 @@ private val parseFloatFields = listOf(
     "nextcladeQcSnpClustersScore",
     "nextcladeQcFrameShiftsScore",
     "nextcladeQcStopCodonsScore",
-    "nextcladeCoverage"
+    "nextcladeCoverage",
 )
 
 private val fillInMissingAlignedSequencesTemplate =
@@ -175,7 +184,7 @@ private fun clean(entry: MutableEntry) {
     entry.apply {
         renameMetadata(oldToNewMetadataNames)
         selectMetadata(selectedMetadata)
-        mapToNull()
+        mapToNull(metadataFieldsMapToNull)
         parseDateFields.forEach { parseDate(it) }
         parseIntegerFields.forEach { parseInteger(it) }
         parseFloatFields.forEach { parseFloat(it) }
