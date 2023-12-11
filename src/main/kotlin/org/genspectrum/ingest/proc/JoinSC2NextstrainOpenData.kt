@@ -187,5 +187,6 @@ private fun clean(entry: MutableEntry) {
         metadata["died"] = null
         metadata["fullyVaccinated"] = null
         metadata["hospitalized"] = null
+        metadata["nextcladeDatasetVersion"] = null
     }
 }

@@ -19,7 +19,8 @@ fun joinSC2GisaidData(
     alignedFile: File,
     translationFiles: List<Pair<String, File>>,
     outputDirectory: Path,
-    outputName: String
+    outputName: String,
+    nextcladeDatasetVersion: String,
 ): File {
     val allFiles = listOf(provisionFile, nextcladeFile, alignedFile) + translationFiles.map { it.second }
     require(allFiles.all { it.sorted && it.type == FileType.NDJSON })
@@ -63,6 +64,7 @@ fun joinSC2GisaidData(
         provisionEntry.nucleotideInsertions = mutableMapOf("main" to nucleotideInsertions)
         provisionEntry.aminoAcidInsertions = aminoAcidInsertions
         clean(provisionEntry)
+        provisionEntry.metadata["nextcladeDatasetVersion"] = nextcladeDatasetVersion
 
         writer.write(provisionEntry)
     }

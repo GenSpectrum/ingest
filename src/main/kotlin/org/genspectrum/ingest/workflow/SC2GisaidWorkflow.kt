@@ -1,8 +1,6 @@
 package org.genspectrum.ingest.workflow
 
-import com.alibaba.fastjson2.JSONObject
-import com.alibaba.fastjson2.JSONWriter
-import com.alibaba.fastjson2.toJSONByteArray
+import com.alibaba.fastjson2.*
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
@@ -12,6 +10,8 @@ import org.genspectrum.ingest.util.readFile
 import org.genspectrum.ingest.util.readNdjson
 import org.genspectrum.ingest.util.runParallel
 import org.genspectrum.ingest.util.writeFile
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
@@ -47,13 +47,15 @@ fun runSC2GisaidWorkflow(
     Files.createDirectories(nextcladePath)
     val nextcladeFiles = runNextclade(extractedSortedFile, nextcladePath)
 
+    val nextcladeDatasetVersion = getNextcladeDatasetVersion()
+
     val nextcladeNdjsonPath = workdir.resolve("06_nextclade_ndjson")
     Files.createDirectories(nextcladeNdjsonPath)
     val nextcladeNdjsonFiles = transformNextcladeOutputToNdjson(nextcladeFiles, nextcladeNdjsonPath)
 
     val joinedPath = workdir.resolve("07_joined")
     Files.createDirectories(joinedPath)
-    joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath)
+    joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath, nextcladeDatasetVersion)
 
     // TODO Merge with the unchanged/cached data
 }
@@ -175,6 +177,27 @@ private fun runNextclade(
     return output
 }
 
+private fun getNextcladeDatasetVersion(): String {
+    val command = arrayOf(
+        "./external_tools/nextclade",
+        "dataset",
+        "list",
+        "-n", "sars-cov-2",
+        "--json"
+    )
+
+    val process = ProcessBuilder(*command).start()
+    val reader = BufferedReader(InputStreamReader(process.inputStream))
+    val output = reader.readText()
+    reader.close()
+
+    return JSON.parseArray(output)
+        .getJSONObject(0)
+        .getJSONObject("attributes")
+        .getJSONObject("tag")
+        .getString("value")
+}
+
 private fun transformNextcladeOutputToNdjson(
     nextcladeFiles: NextcladeOutput,
     nextcladeNdjsonPath: Path
@@ -197,7 +220,8 @@ private fun transformNextcladeOutputToNdjson(
 private fun joinFiles(
     extractedSortedFile: File,
     nextcladeNdjsonFiles: NextcladeOutput,
-    joinedPath: Path
+    joinedPath: Path,
+    nextcladeDatasetVersion: String,
 ): File {
     return joinSC2GisaidData(
         extractedSortedFile,
@@ -205,6 +229,7 @@ private fun joinFiles(
         nextcladeNdjsonFiles.aligned,
         nextcladeNdjsonFiles.translations.toList(),
         joinedPath,
-        "joined"
+        "joined",
+        nextcladeDatasetVersion,
     )
 }
