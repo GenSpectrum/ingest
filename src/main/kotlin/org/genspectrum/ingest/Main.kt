@@ -3,6 +3,9 @@ package org.genspectrum.ingest
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import org.genspectrum.ingest.file.Compression
+import org.genspectrum.ingest.file.File
+import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.workflow.runSC2GisaidWorkflow
 import org.genspectrum.ingest.workflow.runSC2NextstrainOpenWorkflow
 import java.time.LocalDateTime
@@ -31,7 +34,13 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
         runSC2GisaidWorkflow(
             Path(workdirPath),
             url, user, password,
-            Path(workdirPath).resolve("00_archive/TODO"),
+            File(
+                "provision.00",
+                Path(workdirPath).resolve("00_archive"),
+                false,
+                FileType.NDJSON,
+                Compression.ZSTD
+            ),
             Path(workdirPath).resolve("00_archive/provision.00.hashes.ndjson.zst")
         )
     }

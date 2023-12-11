@@ -1,6 +1,9 @@
 package org.genspectrum.ingest.workflow
 
-import com.alibaba.fastjson2.*
+import com.alibaba.fastjson2.JSON
+import com.alibaba.fastjson2.JSONObject
+import com.alibaba.fastjson2.JSONWriter
+import com.alibaba.fastjson2.toJSONByteArray
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
@@ -24,7 +27,7 @@ fun runSC2GisaidWorkflow(
     url: String,
     user: String,
     password: String,
-    previousProcessed: Path,
+    previousProcessed: File,
     previousHashes: Path
 ) {
     val fromSourcePath = workdir.resolve("01_from_source")
@@ -55,9 +58,17 @@ fun runSC2GisaidWorkflow(
 
     val joinedPath = workdir.resolve("07_joined")
     Files.createDirectories(joinedPath)
-    joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath, nextcladeDatasetVersion)
+    val joinedFilePath = joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath, nextcladeDatasetVersion)
 
-    // TODO Merge with the unchanged/cached data
+    val unchangedPath = workdir.resolve("08_unchanged")
+    Files.createDirectories(unchangedPath)
+    val unchangedFilePath = extractUnchangedEntries(unchangedPath, previousProcessed, comparisonFilePath)
+
+    val unchangedAndNewPath = workdir.resolve("09_unchanged_and_new")
+    Files.createDirectories(unchangedAndNewPath)
+    val unchangedAndNewFilePath = mergeUnchangedAndNew(unchangedAndNewPath, unchangedFilePath, joinedFilePath)
+
+    // The final files are: hashesFile and unchangedAndNewFilePath
 }
 
 private data class NextcladeOutput(
@@ -232,4 +243,14 @@ private fun joinFiles(
         "joined",
         nextcladeDatasetVersion,
     )
+}
+
+fun extractUnchangedEntries(unchangedPath: Path, previousProcessed: File, comparisonFilePath: Path): File {
+    return extractUnchanged("gisaidEpiIsl", comparisonFilePath, previousProcessed, unchangedPath)
+}
+
+fun mergeUnchangedAndNew(outputDirectory: Path, unchangedFilePath: File, joinedFilePath: File): File {
+    val outputFile = File("merged", outputDirectory, false, FileType.NDJSON, Compression.ZSTD)
+    concatFiles(arrayOf(unchangedFilePath.path, joinedFilePath.path), outputFile.path)
+    return outputFile
 }
