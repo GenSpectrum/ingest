@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.9.0"
+    kotlin("jvm") version "1.9.20"
     application
 }
 
@@ -11,9 +11,9 @@ repositories {
 }
 
 dependencies {
-    implementation("com.alibaba.fastjson2:fastjson2-kotlin:2.0.40")
-    implementation("com.github.ajalt.clikt:clikt:4.2.0")
-    implementation("com.github.luben:zstd-jni:1.5.5-5")
+    implementation("com.alibaba.fastjson2:fastjson2-kotlin:2.0.43")
+    implementation("com.github.ajalt.clikt:clikt:4.2.1")
+    implementation("com.github.luben:zstd-jni:1.5.5-11")
     implementation("org.apache.commons:commons-csv:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.tukaani:xz:1.9")
