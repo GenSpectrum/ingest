@@ -103,6 +103,9 @@ private val selectedMetadata = setOf(
     "countryExposure",
     "divisionExposure",
     "host",
+    "hospitalized",
+    "died",
+    "fullyVaccinated",
     "age",
     "sex",
     "samplingStrategy",
@@ -143,6 +146,12 @@ private val parseFloatFields = listOf(
     "nextcladeCoverage"
 )
 
+private val metadataFieldsMapToNull = setOf(
+    "died",
+    "fullyVaccinated",
+    "hospitalized",
+)
+
 private val fillInMissingAlignedSequencesTemplate =
     AlignedGenome.loadFromFile(Path("reference-genome.sc2.json"))
         .replaceContentWithUnknown()
@@ -151,7 +160,7 @@ private fun clean(entry: MutableEntry) {
     entry.apply {
         renameMetadata(oldToNewMetadataNames)
         selectMetadata(selectedMetadata)
-        mapToNull()
+        mapToNull(metadataFieldsMapToNull)
         parseDateFields.forEach { parseDate(it) }
         parseIntegerFields.forEach { parseInteger(it, true) }
         parseFloatFields.forEach { parseFloat(it) }
