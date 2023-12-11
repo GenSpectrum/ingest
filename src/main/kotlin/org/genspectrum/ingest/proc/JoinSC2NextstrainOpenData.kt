@@ -153,12 +153,6 @@ private val selectedMetadata = setOf(
     "nextcladeCoverage",
 )
 
-private val metadataFieldsMapToNull = setOf(
-    "died",
-    "fullyVaccinated",
-    "hospitalized",
-)
-
 private val parseDateFields = listOf("date", "dateSubmitted", "dateUpdated")
 
 private val parseIntegerFields = listOf("age")
@@ -184,10 +178,14 @@ private fun clean(entry: MutableEntry) {
     entry.apply {
         renameMetadata(oldToNewMetadataNames)
         selectMetadata(selectedMetadata)
-        mapToNull(metadataFieldsMapToNull)
+        mapToNull()
         parseDateFields.forEach { parseDate(it) }
         parseIntegerFields.forEach { parseInteger(it) }
         parseFloatFields.forEach { parseFloat(it) }
         fillInMissingAlignedSequences(fillInMissingAlignedSequencesTemplate)
+
+        metadata["died"] = null
+        metadata["fullyVaccinated"] = null
+        metadata["hospitalized"] = null
     }
 }
