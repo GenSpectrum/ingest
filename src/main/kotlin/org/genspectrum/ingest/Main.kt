@@ -26,6 +26,7 @@ class SC2NextstrainOpenIngestCommand : CliktCommand(name = "ingest-sc2-nextstrai
 
 class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
     private val workdirPath by argument("workdir")
+    private val previousProcessedVersion by argument("previous-processed")
     private val url by argument("url")
     private val user by argument("user")
     private val password by argument("password")
@@ -35,13 +36,13 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
             Path(workdirPath),
             url, user, password,
             File(
-                "provision.00",
+                "provision.$previousProcessedVersion",
                 Path(workdirPath).resolve("00_archive"),
                 false,
                 FileType.NDJSON,
                 Compression.ZSTD
             ),
-            Path(workdirPath).resolve("00_archive/provision.00.hashes.ndjson.zst")
+            Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst")
         )
     }
 }
