@@ -176,6 +176,7 @@ private val fillInMissingAlignedSequencesTemplate =
 
 private fun clean(entry: MutableEntry) {
     entry.apply {
+        maskSC2LeadingAndTrailingDeletions()
         renameMetadata(oldToNewMetadataNames)
         selectMetadata(selectedMetadata)
         mapToNull()
