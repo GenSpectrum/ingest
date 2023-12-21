@@ -46,7 +46,7 @@ class GeoLocationMapper(geoLocationRules: List<String>) {
         }
     }
 
-    private fun findApplicableRule(geoLocation: GeoLocation): Array<String>? {
+    private fun findApplicableRule(geoLocation: GeoLocation): List<String>? {
         return findApplicableRule(
             listOf(geoLocation.region, geoLocation.country, geoLocation.division, geoLocation.location),
             0,
@@ -58,14 +58,14 @@ class GeoLocationMapper(geoLocationRules: List<String>) {
         geoLocation: List<String>,
         currentLevel: Int,
         currentLevelMap: Map<String, *>
-    ): Array<String>? {
+    ): List<String>? {
         val fullMatchValue = currentLevelMap[geoLocation[currentLevel].lowercase()]
         val wildCastValue = currentLevelMap["*"]
         if (fullMatchValue == null && wildCastValue == null) {
             return null
         }
         if (currentLevel == 3) {
-            return (fullMatchValue ?: wildCastValue) as Array<String>
+            return (fullMatchValue ?: wildCastValue) as List<String>
         }
         val fullMatchMap = fullMatchValue as Map<String, *>?
         val wildCastMap = wildCastValue as Map<String, *>?
