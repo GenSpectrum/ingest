@@ -28,7 +28,8 @@ fun runSC2GisaidWorkflow(
     user: String,
     password: String,
     previousProcessed: File,
-    previousHashes: Path
+    previousHashes: Path,
+    geoLocationRulesFile: Path
 ) {
     val fromSourcePath = workdir.resolve("01_from_source")
     Files.createDirectories(fromSourcePath)
@@ -36,7 +37,7 @@ fun runSC2GisaidWorkflow(
 
     val basicTransformedPath = workdir.resolve("02_basic_transformed")
     Files.createDirectories(basicTransformedPath)
-    val (transformedFile, hashesFile) = transformAndHash(sourceFile, basicTransformedPath)
+    val (transformedFile, hashesFile) = transformAndHash(sourceFile, basicTransformedPath, geoLocationRulesFile)
 
     val comparisonPath = workdir.resolve("03_comparison")
     Files.createDirectories(comparisonPath)
@@ -99,9 +100,10 @@ private fun downloadFromGisaid(
 
 private fun transformAndHash(
     sourceFile: File,
-    basicTransformedPath: Path
+    basicTransformedPath: Path,
+    geoLocationRulesFile: Path
 ): Pair<File, File> {
-    val tmp = transformSC2GisaidBasics(sourceFile, basicTransformedPath)
+    val tmp = transformSC2GisaidBasics(sourceFile, basicTransformedPath, geoLocationRulesFile)
     return Pair(tmp.dataFile, tmp.hashesFile)
 }
 

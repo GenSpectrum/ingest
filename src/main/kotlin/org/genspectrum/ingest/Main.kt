@@ -30,6 +30,7 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
     private val url by argument("url")
     private val user by argument("user")
     private val password by argument("password")
+    private val geoLocationRulesFile by argument("geo-location-rules")
 
     override fun run() {
         runSC2GisaidWorkflow(
@@ -42,7 +43,8 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
                 FileType.NDJSON,
                 Compression.ZSTD
             ),
-            Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst")
+            Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst"),
+            Path(geoLocationRulesFile)
         )
     }
 }

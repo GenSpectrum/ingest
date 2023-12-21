@@ -2,20 +2,23 @@ package org.genspectrum.ingest.proc
 
 import com.alibaba.fastjson2.JSONObject
 import org.genspectrum.ingest.entry.MutableEntry
+import org.genspectrum.ingest.entry.mapGeoLocations
 import org.genspectrum.ingest.entry.mapToNull
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.util.readFile
-import org.genspectrum.ingest.util.readNdjson
-import org.genspectrum.ingest.util.writeFile
-import org.genspectrum.ingest.util.writeNdjson
+import org.genspectrum.ingest.util.*
 import java.nio.file.Path
 
-fun transformSC2GisaidBasics(inputFile: File, outputDirectory: Path): TransformSC2GisaidBasicsResult {
+fun transformSC2GisaidBasics(
+    inputFile: File,
+    outputDirectory: Path,
+    geoLocationRulesFile: Path
+): TransformSC2GisaidBasicsResult {
     require(inputFile.type == FileType.NDJSON)
     val outputFile = File(inputFile.name, outputDirectory, inputFile.sorted, FileType.NDJSON, Compression.ZSTD)
     val hashOutputFile = outputFile.copy(name = inputFile.name + ".hashes")
+    val geoLocationMapper = GeoLocationMapper(geoLocationRulesFile)
 
     val reader = readNdjson<JSONObject>(readFile(inputFile.path))
     val hashFileWriter = writeNdjson<Any>(writeFile(hashOutputFile.path))
@@ -68,6 +71,7 @@ fun transformSC2GisaidBasics(inputFile: File, outputDirectory: Path): TransformS
             mutableMapOf()
         )
         ourEntry.mapToNull(setOf("", "unknown"))
+        ourEntry.mapGeoLocations(geoLocationMapper)
         writer.write(ourEntry)
     }
     writer.close()
