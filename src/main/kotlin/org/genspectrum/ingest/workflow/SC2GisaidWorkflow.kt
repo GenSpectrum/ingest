@@ -19,8 +19,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
+import java.time.ZoneId
 import java.util.*
 import kotlin.io.path.Path
+
 
 fun runSC2GisaidWorkflow(
     workdir: Path,
@@ -69,7 +72,11 @@ fun runSC2GisaidWorkflow(
     Files.createDirectories(unchangedAndNewPath)
     val unchangedAndNewFilePath = mergeUnchangedAndNew(unchangedAndNewPath, unchangedFilePath, joinedFilePath)
 
-    // The final files are: hashesFile and unchangedAndNewFilePath
+    val finalDestinationPath = workdir.resolve("00_archive")
+    Files.createDirectories(finalDestinationPath)
+    val (finalHashesFile, finalProvisionFile) = moveFinalFiles(hashesFile, unchangedAndNewFilePath, finalDestinationPath)
+
+    println("Final output: ${finalHashesFile.path}, ${finalProvisionFile.path}")
 }
 
 private data class NextcladeOutput(
@@ -255,4 +262,26 @@ fun mergeUnchangedAndNew(outputDirectory: Path, unchangedFilePath: File, joinedF
     val outputFile = File("merged", outputDirectory, false, FileType.NDJSON, Compression.ZSTD)
     concatFiles(arrayOf(unchangedFilePath.path, joinedFilePath.path), outputFile.path)
     return outputFile
+}
+
+fun moveFinalFiles(hashesFile: File, provisionFile: File, directoryPath: Path): Pair<File, File> {
+    val zoneId = ZoneId.systemDefault()
+    val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
+    val finalHashesFile = File(
+        "provision.$newDataVersion.hashes",
+        directoryPath,
+        hashesFile.sorted,
+        hashesFile.type,
+        hashesFile.compression
+    )
+    val finalProvisionFile = File(
+        "provision.$newDataVersion",
+        directoryPath,
+        provisionFile.sorted,
+        provisionFile.type,
+        provisionFile.compression
+    )
+    renameFile(hashesFile.path, finalHashesFile.path)
+    renameFile(provisionFile.path, finalProvisionFile.path)
+    return Pair(finalHashesFile, finalProvisionFile)
 }
