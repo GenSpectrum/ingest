@@ -1,5 +1,29 @@
 # GenSpectrum ingest
 
+## Run with Docker
+
+See help page:
+
+```bash
+docker run --rm ghcr.io/genspectrum/ingest:main -h
+```
+
+Preprocess GISAID data:
+
+```bash
+docker run --rm \
+  -v <local data directory>:/data \
+  ghcr.io/genspectrum/ingest:main \
+  ingest-sc2-gisaid \
+  /data \
+  <data version of previous output> \
+  <GISAID endpoint URL> \
+  <GISAID username> \
+  <GISAID password> \
+  /app/gisaid_geoLocationRules.tsv
+```
+
+
 ## Internal data format
 
 The program uses `ndjson.zst` as the default format. One JSON entry could look as follows:

@@ -1,0 +1,6 @@
+.idea/
+.gradle/
+data/
+external_tools/
+build/
+Dockerfile
