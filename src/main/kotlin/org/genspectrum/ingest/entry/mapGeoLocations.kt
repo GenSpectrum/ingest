@@ -17,8 +17,8 @@ fun MutableEntry.mapGeoLocations(
         this.metadata[locationFieldName] as String?,
     )
     val resolved = geoLocationMapper.resolve(geoLocation)
-    this.metadata[regionFieldName] = resolved.country
+    this.metadata[regionFieldName] = resolved.region
     this.metadata[countryFieldName] = resolved.country
-    this.metadata[divisionFieldName] = resolved.country
-    this.metadata[locationFieldName] = resolved.country
+    this.metadata[divisionFieldName] = resolved.division
+    this.metadata[locationFieldName] = resolved.location
 }
