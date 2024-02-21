@@ -179,7 +179,7 @@ private fun runNextclade(
         "--output-fasta",
         output.aligned.path.toString(),
         "--output-translations",
-        "$outputDirectory/translation_{gene}${if (sequencesFasta.sorted) ".sorted" else ""}.fasta.zst",
+        "$outputDirectory/translation_{cds}${if (sequencesFasta.sorted) ".sorted" else ""}.fasta.zst",
         sequencesFasta.path.toString()
     )
 

@@ -9,7 +9,7 @@ FROM amazoncorretto:21 as server
 WORKDIR /app
 
 # Download Nextclade
-RUN curl -fsSL "https://github.com/nextstrain/nextclade/releases/download/2.14.0/nextclade-x86_64-unknown-linux-gnu" -o "nextclade"
+RUN curl -fsSL "https://github.com/nextstrain/nextclade/releases/latest/download/nextclade-x86_64-unknown-linux-gnu" -o "nextclade"
 RUN chmod +x nextclade
 RUN mkdir -p external_tools
 RUN mv nextclade external_tools/nextclade
