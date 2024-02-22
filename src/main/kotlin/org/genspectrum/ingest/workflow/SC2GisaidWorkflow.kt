@@ -213,9 +213,8 @@ private fun getNextcladeDatasetVersion(): String {
 
     return JSON.parseArray(output)
         .getJSONObject(0)
-        .getJSONObject("attributes")
-        .getJSONObject("tag")
-        .getString("value")
+        .getJSONObject("version")
+        .getString("tag")
 }
 
 private fun transformNextcladeOutputToNdjson(
