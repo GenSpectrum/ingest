@@ -8,7 +8,18 @@ import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.proc.*
+import org.genspectrum.ingest.proc.HashEntry
+import org.genspectrum.ingest.proc.compareHashes
+import org.genspectrum.ingest.proc.concatFiles
+import org.genspectrum.ingest.proc.extractAddedOrChanged
+import org.genspectrum.ingest.proc.extractUnchanged
+import org.genspectrum.ingest.proc.fastaToNdjson
+import org.genspectrum.ingest.proc.joinSC2GisaidData
+import org.genspectrum.ingest.proc.renameFile
+import org.genspectrum.ingest.proc.sortNdjson
+import org.genspectrum.ingest.proc.transformSC2GisaidBasics
+import org.genspectrum.ingest.proc.tsvToNdjson
+import org.genspectrum.ingest.proc.unalignedNucleotideSequencesToFasta
 import org.genspectrum.ingest.util.readFile
 import org.genspectrum.ingest.util.readNdjson
 import org.genspectrum.ingest.util.runParallel
@@ -20,10 +31,10 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.*
+import java.util.Base64
 import kotlin.io.path.Path
-
 
 fun runSC2GisaidWorkflow(
     workdir: Path,
@@ -38,43 +49,67 @@ fun runSC2GisaidWorkflow(
     Files.createDirectories(fromSourcePath)
     val sourceFile = downloadFromGisaid(url, user, password, fromSourcePath, "provision")
 
+    println("${LocalDateTime.now()}: Finished downloading from GISAID")
+
     val basicTransformedPath = workdir.resolve("02_basic_transformed")
     Files.createDirectories(basicTransformedPath)
     val (transformedFile, hashesFile) = transformAndHash(sourceFile, basicTransformedPath, geoLocationRulesFile)
+
+    println("${LocalDateTime.now()}: Finished transformAndHash")
 
     val comparisonPath = workdir.resolve("03_comparison")
     Files.createDirectories(comparisonPath)
     val comparisonFilePath = compareHashes(comparisonPath, previousHashes, hashesFile)
 
+    println("${LocalDateTime.now()}: Finished compareHashes")
+
     val addedOrChangedPath = workdir.resolve("04_added_or_changed")
     Files.createDirectories(addedOrChangedPath)
     val extractedSortedFile = extractChangedEntries(addedOrChangedPath, comparisonFilePath, transformedFile)
+
+    println("${LocalDateTime.now()}: Finished extractChangedEntries")
 
     val nextcladePath = workdir.resolve("05_nextclade")
     Files.createDirectories(nextcladePath)
     val nextcladeFiles = runNextclade(extractedSortedFile, nextcladePath)
 
+    println("${LocalDateTime.now()}: Finished runNextclade")
+
     val nextcladeDatasetVersion = getNextcladeDatasetVersion()
+
+    println("${LocalDateTime.now()}: Finished getNextcladeDatasetVersion")
 
     val nextcladeNdjsonPath = workdir.resolve("06_nextclade_ndjson")
     Files.createDirectories(nextcladeNdjsonPath)
     val nextcladeNdjsonFiles = transformNextcladeOutputToNdjson(nextcladeFiles, nextcladeNdjsonPath)
 
+    println("${LocalDateTime.now()}: Finished transformNextcladeOutputToNdjson")
+
     val joinedPath = workdir.resolve("07_joined")
     Files.createDirectories(joinedPath)
     val joinedFilePath = joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath, nextcladeDatasetVersion)
+
+    println("${LocalDateTime.now()}: Finished joinFiles")
 
     val unchangedPath = workdir.resolve("08_unchanged")
     Files.createDirectories(unchangedPath)
     val unchangedFilePath = extractUnchangedEntries(unchangedPath, previousProcessed, comparisonFilePath)
 
+    println("${LocalDateTime.now()}: Finished extractUnchangedEntries")
+
     val unchangedAndNewPath = workdir.resolve("09_unchanged_and_new")
     Files.createDirectories(unchangedAndNewPath)
     val unchangedAndNewFilePath = mergeUnchangedAndNew(unchangedAndNewPath, unchangedFilePath, joinedFilePath)
 
+    println("${LocalDateTime.now()}: Finished mergeUnchangedAndNew")
+
     val finalDestinationPath = workdir.resolve("00_archive")
     Files.createDirectories(finalDestinationPath)
-    val (finalHashesFile, finalProvisionFile) = moveFinalFiles(hashesFile, unchangedAndNewFilePath, finalDestinationPath)
+    val (finalHashesFile, finalProvisionFile) = moveFinalFiles(
+        hashesFile,
+        unchangedAndNewFilePath,
+        finalDestinationPath
+    )
 
     println("Final output: ${finalHashesFile.path}, ${finalProvisionFile.path}")
 }
