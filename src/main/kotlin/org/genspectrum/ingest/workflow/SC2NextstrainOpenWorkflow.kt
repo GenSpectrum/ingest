@@ -5,6 +5,7 @@ import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.proc.fastaToNdjson
 import org.genspectrum.ingest.proc.joinSC2NextstrainOpenData
+import org.genspectrum.ingest.proc.renameFile
 import org.genspectrum.ingest.proc.sortNdjson
 import org.genspectrum.ingest.proc.tsvToNdjson
 import org.genspectrum.ingest.util.runParallel
@@ -12,23 +13,43 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 fun runSC2NextstrainOpenWorkflow(workdir: Path) {
     val fromSourcePath = workdir.resolve("01_from_source")
     Files.createDirectories(fromSourcePath)
     val sourceFiles = runParallel(OpenFiles.entries.map { { it to downloadFromNextstrain(it, fromSourcePath) } }, 3).toMap()
 
+    println("${LocalDateTime.now()}: Finished downloading from Nextstrain")
+
     val ndjsonPath = workdir.resolve("02_ndjson")
     Files.createDirectories(ndjsonPath)
     val ndjsonFiles = transformSourceFilesToNdjson(sourceFiles, ndjsonPath)
+
+    println("${LocalDateTime.now()}: Finished transformSourceFilesToNdjson")
 
     val sortedPath = workdir.resolve("03_sorted")
     Files.createDirectories(sortedPath)
     val sortedFiles = sortNdjsonFiles(ndjsonFiles, sortedPath)
 
+    println("${LocalDateTime.now()}: Finished sortNdjsonFiles")
+
     val joinedPath = workdir.resolve("04_joined_and_cleaned")
     Files.createDirectories(joinedPath)
-    joinFiles(sortedFiles, joinedPath)
+    val joinedFile = joinFiles(sortedFiles, joinedPath)
+
+    println("${LocalDateTime.now()}: Finished joinFiles")
+
+    val finalDestinationPath = workdir.resolve("00_archive")
+    Files.createDirectories(finalDestinationPath)
+    val finalProvisionFile = moveFinalFile(
+        joinedFile,
+        finalDestinationPath
+    )
+
+    println("Final output: ${finalProvisionFile.path}")
 }
 
 private enum class OpenFiles {
@@ -145,4 +166,18 @@ private fun joinFiles(
         joinedPath,
         "processed"
     )
+}
+
+private fun moveFinalFile(provisionFile: File, directoryPath: Path): File {
+    val zoneId = ZoneId.systemDefault()
+    val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
+    val finalProvisionFile = File(
+        "provision.$newDataVersion",
+        directoryPath,
+        provisionFile.sorted,
+        provisionFile.type,
+        provisionFile.compression
+    )
+    renameFile(provisionFile.path, finalProvisionFile.path)
+    return finalProvisionFile
 }
