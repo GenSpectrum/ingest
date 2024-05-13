@@ -71,7 +71,7 @@ private fun downloadFromNextstrain(file: OpenFiles, outputDirectory: Path): File
         OpenFiles.TRANSLATION_ORF9b -> fastaTemplate.copy(name = "translation_ORF9b")
         OpenFiles.TRANSLATION_S -> fastaTemplate.copy(name = "translation_S")
     }
-    val url = URL("https://data.nextstrain.org/files/ncov/open/${outputFile.name}")
+    val url = URL("https://data.nextstrain.org/files/ncov/open/${outputFile.filename}")
     url.openStream().use { input ->
         Files.copy(input, outputFile.path, StandardCopyOption.REPLACE_EXISTING)
     }
