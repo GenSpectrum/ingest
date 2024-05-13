@@ -298,7 +298,7 @@ fun mergeUnchangedAndNew(outputDirectory: Path, unchangedFilePath: File, joinedF
     return outputFile
 }
 
-fun moveFinalFiles(hashesFile: File, provisionFile: File, directoryPath: Path): Pair<File, File> {
+private fun moveFinalFiles(hashesFile: File, provisionFile: File, directoryPath: Path): Pair<File, File> {
     val zoneId = ZoneId.systemDefault()
     val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
     val finalHashesFile = File(
