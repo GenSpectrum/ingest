@@ -1,5 +1,6 @@
 package org.genspectrum.ingest.workflow
 
+import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
@@ -20,7 +21,8 @@ import java.time.ZoneId
 fun runSC2NextstrainOpenWorkflow(workdir: Path) {
     val fromSourcePath = workdir.resolve("01_from_source")
     Files.createDirectories(fromSourcePath)
-    val sourceFiles = runParallel(OpenFiles.entries.map { { it to downloadFromNextstrain(it, fromSourcePath) } }, 3).toMap()
+    val sourceFiles = runParallel(OpenFiles.entries.map { { it to downloadFromNextstrain(it, fromSourcePath) } }, 3)
+        .toMap()
 
     println("${LocalDateTime.now()}: Finished downloading from Nextstrain")
 
@@ -38,15 +40,16 @@ fun runSC2NextstrainOpenWorkflow(workdir: Path) {
 
     val joinedPath = workdir.resolve("04_joined_and_cleaned")
     Files.createDirectories(joinedPath)
-    val joinedFile = joinFiles(sortedFiles, joinedPath)
+    val (joinedFile, allPangoLineagesFile) = joinFiles(sortedFiles, joinedPath)
 
     println("${LocalDateTime.now()}: Finished joinFiles")
 
     val finalDestinationPath = workdir.resolve("00_archive")
     Files.createDirectories(finalDestinationPath)
-    val finalProvisionFile = moveFinalFile(
-        joinedFile,
-        finalDestinationPath
+    val finalProvisionFile = moveFinalFiles(
+        provisionFile = joinedFile,
+        allPangoLineagesFile = allPangoLineagesFile,
+        directoryPath = finalDestinationPath
     )
 
     println("Final output: ${finalProvisionFile.path}")
@@ -74,7 +77,7 @@ private enum class OpenFiles {
 private fun downloadFromNextstrain(file: OpenFiles, outputDirectory: Path): File {
     val tsvTemplate = File("-", outputDirectory, false, FileType.TSV, Compression.ZSTD)
     val fastaTemplate = File("-", outputDirectory, false, FileType.FASTA, Compression.ZSTD)
-    val outputFile = when(file) {
+    val outputFile = when (file) {
         OpenFiles.METADATA -> tsvTemplate.copy(name = "metadata")
         OpenFiles.NEXTCLADE -> tsvTemplate.copy(name = "nextclade")
         OpenFiles.SEQUENCES -> fastaTemplate.copy(name = "sequences")
@@ -143,13 +146,13 @@ private fun sortNdjsonFiles(
 private fun joinFiles(
     sortedFiles: Map<OpenFiles, File>,
     joinedPath: Path
-): File {
+): Pair<File, AllPangoLineagesFile> {
     return joinSC2NextstrainOpenData(
-        sortedFiles[OpenFiles.METADATA]!!,
-        sortedFiles[OpenFiles.NEXTCLADE]!!,
-        sortedFiles[OpenFiles.SEQUENCES]!!,
-        sortedFiles[OpenFiles.ALIGNED]!!,
-        listOf(
+        sortedMetadataFile = sortedFiles[OpenFiles.METADATA]!!,
+        sortedNextcladeFile = sortedFiles[OpenFiles.NEXTCLADE]!!,
+        sortedSequencesFile = sortedFiles[OpenFiles.SEQUENCES]!!,
+        sortedAlignedFile = sortedFiles[OpenFiles.ALIGNED]!!,
+        sortedTranslationFiles = listOf(
             "E" to sortedFiles[OpenFiles.TRANSLATION_E]!!,
             "M" to sortedFiles[OpenFiles.TRANSLATION_M]!!,
             "N" to sortedFiles[OpenFiles.TRANSLATION_N]!!,
@@ -163,12 +166,12 @@ private fun joinFiles(
             "ORF9b" to sortedFiles[OpenFiles.TRANSLATION_ORF9b]!!,
             "S" to sortedFiles[OpenFiles.TRANSLATION_S]!!
         ),
-        joinedPath,
-        "processed"
+        outputDirectory = joinedPath,
+        outputName = "processed"
     )
 }
 
-private fun moveFinalFile(provisionFile: File, directoryPath: Path): File {
+private fun moveFinalFiles(provisionFile: File, allPangoLineagesFile: AllPangoLineagesFile, directoryPath: Path): File {
     val zoneId = ZoneId.systemDefault()
     val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
     val finalProvisionFile = File(
@@ -178,6 +181,19 @@ private fun moveFinalFile(provisionFile: File, directoryPath: Path): File {
         provisionFile.type,
         provisionFile.compression
     )
-    renameFile(provisionFile.path, finalProvisionFile.path)
+    renameFile(
+        oldPath = provisionFile.path,
+        newPath = finalProvisionFile.path
+    )
+
+    val finalPangoLineagesFile = AllPangoLineagesFile(
+        dataVersion = newDataVersion.toString(),
+        directory = directoryPath
+    )
+    renameFile(
+        oldPath = allPangoLineagesFile.path,
+        newPath = finalPangoLineagesFile.path
+    )
+
     return finalProvisionFile
 }

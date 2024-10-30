@@ -3,6 +3,7 @@ package org.genspectrum.ingest.proc
 import com.alibaba.fastjson2.to
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.entry.*
+import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
@@ -21,13 +22,15 @@ fun joinSC2GisaidData(
     outputDirectory: Path,
     outputName: String,
     nextcladeDatasetVersion: String,
-): File {
+): Pair<File, AllPangoLineagesFile> {
     val allFiles = listOf(provisionFile, nextcladeFile, alignedFile) + translationFiles.map { it.second }
     require(allFiles.all { it.sorted && it.type == FileType.NDJSON })
     val outputFile = File(outputName, outputDirectory, true, FileType.NDJSON, Compression.ZSTD)
 
     val translationNames = translationFiles.map { it.first }
     val inputStreams = allFiles.map { readFile(it.path) }
+
+    val allPangoLineages = HashSet<String>()
 
     val joiner = SortedNdjsonFilesOuterJoiner("id", "seqName", inputStreams)
     val writer = writeNdjson<Any>(writeFile(outputFile.path))
@@ -66,17 +69,32 @@ fun joinSC2GisaidData(
         clean(provisionEntry)
         provisionEntry.metadata["nextcladeDatasetVersion"] = nextcladeDatasetVersion
 
+        for (pangoLineageField in pangoLineageNames) {
+            val pangoLineage = provisionEntry.metadata[pangoLineageField]
+            if (pangoLineage is String) {
+                allPangoLineages.add(pangoLineage)
+            }
+        }
+
         writer.write(provisionEntry)
     }
     writer.close()
 
-    return outputFile
+    val allPangoLineagesFile = AllPangoLineagesFile(directory = outputDirectory)
+    allPangoLineagesFile.write(allPangoLineages)
+
+    return outputFile to allPangoLineagesFile
 }
+
+private const val pangoLineage = "pangoLineage"
+private const val nextcladePangoLineage = "nextcladePangoLineage"
+
+private val pangoLineageNames = listOf(pangoLineage, nextcladePangoLineage)
 
 private val oldToNewMetadataNames = listOf(
     "clade_nextstrain" to "nextstrainClade",
     "clade_who" to "whoClade",
-    "Nextclade_pango" to "nextcladePangoLineage",
+    "Nextclade_pango" to nextcladePangoLineage,
     "qc.overallScore" to "nextcladeQcOverallScore",
     "qc.missingData.score" to "nextcladeQcMissingDataScore",
     "qc.mixedSites.score" to "nextcladeQcMixedSites",
@@ -111,8 +129,8 @@ private val selectedMetadata = setOf(
     "age",
     "sex",
     "samplingStrategy",
-    "pangoLineage",
-    "nextcladePangoLineage",
+    pangoLineage,
+    nextcladePangoLineage,
     "nextstrainClade",
     "whoClade",
     "gisaidClade",

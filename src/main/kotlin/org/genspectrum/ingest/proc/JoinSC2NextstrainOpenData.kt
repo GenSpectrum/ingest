@@ -2,6 +2,7 @@ package org.genspectrum.ingest.proc
 
 import org.genspectrum.ingest.AlignedGenome
 import org.genspectrum.ingest.entry.*
+import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
@@ -21,7 +22,7 @@ fun joinSC2NextstrainOpenData(
     outputDirectory: Path,
     outputName: String,
     outputCompression: Compression = Compression.ZSTD,
-): File {
+): Pair<File, AllPangoLineagesFile> {
     val allInputFiles = listOf(sortedMetadataFile, sortedNextcladeFile, sortedSequencesFile, sortedAlignedFile) +
         sortedTranslationFiles.map { it.second }
     require(allInputFiles.all { it.sorted && it.type == FileType.NDJSON })
@@ -29,6 +30,8 @@ fun joinSC2NextstrainOpenData(
 
     val translationNames = sortedTranslationFiles.map { it.first }
     val inputStreams = allInputFiles.map { readFile(it.path) }
+
+    val allPangoLineages = HashSet<String>()
 
     val joiner = SortedNdjsonFilesOuterJoiner("strain", "seqName", inputStreams)
     val writer = writeNdjson<Any>(writeFile(outputFile.path))
@@ -72,11 +75,26 @@ fun joinSC2NextstrainOpenData(
         if (joined.metadata["strain"] == null) {
             continue
         }
+        for (pangoLineageField in pangoLineageNames) {
+            val pangoLineage = joined.metadata[pangoLineageField]
+            if (pangoLineage is String) {
+                allPangoLineages.add(pangoLineage)
+            }
+        }
         writer.write(joined)
     }
     writer.close()
-    return outputFile
+
+    val allPangoLineagesFile = AllPangoLineagesFile(directory = outputDirectory)
+    allPangoLineagesFile.write(allPangoLineages)
+
+    return outputFile to allPangoLineagesFile
 }
+
+private const val pangoLineage = "pangoLineage"
+private const val nextcladePangoLineage = "nextcladePangoLineage"
+
+private val pangoLineageNames = listOf(pangoLineage, nextcladePangoLineage)
 
 private val oldToNewMetadataNames = listOf(
     "gisaid_epi_isl" to "gisaidEpiIsl",
@@ -87,7 +105,7 @@ private val oldToNewMetadataNames = listOf(
     "country_exposure" to "countryExposure",
     "division_exposure" to "divisionExposure",
     "Nextstrain_clade" to "nextstrainClade",
-    "pango_lineage" to "pangoLineage",
+    "pango_lineage" to pangoLineage,
     "GISAID_clade" to "gisaidClade",
     "originating_lab" to "originatingLab",
     "submitting_lab" to "submittingLab",
@@ -96,7 +114,7 @@ private val oldToNewMetadataNames = listOf(
     "sampling_strategy" to "samplingStrategy",
     "clade_nextstrain" to "nextstrainClade",
     "clade_who" to "whoClade",
-    "Nextclade_pango" to "nextcladePangoLineage",
+    "Nextclade_pango" to nextcladePangoLineage,
     "immune_escape" to "immuneEscape",
     "ace2_binding" to "ace2Binding",
     "QC_overall_score" to "nextcladeQcOverallScore",
@@ -133,8 +151,8 @@ private val selectedMetadata = setOf(
     "age",
     "sex",
     "samplingStrategy",
-    "pangoLineage",
-    "nextcladePangoLineage",
+    pangoLineage,
+    nextcladePangoLineage,
     "nextstrainClade",
     "whoClade",
     "gisaidClade",

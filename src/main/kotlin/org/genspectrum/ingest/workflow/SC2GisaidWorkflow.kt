@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject
 import com.alibaba.fastjson2.JSONWriter
 import com.alibaba.fastjson2.toJSONByteArray
 import org.genspectrum.ingest.AlignedGenome
+import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
@@ -42,6 +43,7 @@ fun runSC2GisaidWorkflow(
     user: String,
     password: String,
     previousProcessed: File,
+    previousAllPangoLineagesFile: AllPangoLineagesFile,
     previousHashes: Path,
     geoLocationRulesFile: Path
 ) {
@@ -87,7 +89,12 @@ fun runSC2GisaidWorkflow(
 
     val joinedPath = workdir.resolve("07_joined")
     Files.createDirectories(joinedPath)
-    val joinedFilePath = joinFiles(extractedSortedFile, nextcladeNdjsonFiles, joinedPath, nextcladeDatasetVersion)
+    val (joinedFilePath, newPangoLineagesFile) = joinFiles(
+        extractedSortedFile,
+        nextcladeNdjsonFiles,
+        joinedPath,
+        nextcladeDatasetVersion
+    )
 
     println("${LocalDateTime.now()}: Finished joinFiles")
 
@@ -99,16 +106,26 @@ fun runSC2GisaidWorkflow(
 
     val unchangedAndNewPath = workdir.resolve("09_unchanged_and_new")
     Files.createDirectories(unchangedAndNewPath)
-    val unchangedAndNewFilePath = mergeUnchangedAndNew(unchangedAndNewPath, unchangedFilePath, joinedFilePath)
+    val unchangedAndNewFilePath = mergeUnchangedAndNew(
+        outputDirectory = unchangedAndNewPath,
+        unchangedFilePath = unchangedFilePath,
+        joinedFilePath = joinedFilePath
+    )
+    val allPangoLineagesFile = mergePangoLineageFiles(
+        outputDirectory = unchangedAndNewPath,
+        previousAllPangoLineagesFile = previousAllPangoLineagesFile,
+        newPangoLineagesFile = newPangoLineagesFile
+    )
 
     println("${LocalDateTime.now()}: Finished mergeUnchangedAndNew")
 
     val finalDestinationPath = workdir.resolve("00_archive")
     Files.createDirectories(finalDestinationPath)
     val (finalHashesFile, finalProvisionFile) = moveFinalFiles(
-        hashesFile,
-        unchangedAndNewFilePath,
-        finalDestinationPath
+        hashesFile = hashesFile,
+        provisionFile = unchangedAndNewFilePath,
+        allPangoLineagesFile = allPangoLineagesFile,
+        directoryPath = finalDestinationPath
     )
 
     println("Final output: ${finalHashesFile.path}, ${finalProvisionFile.path}")
@@ -276,15 +293,15 @@ private fun joinFiles(
     nextcladeNdjsonFiles: NextcladeOutput,
     joinedPath: Path,
     nextcladeDatasetVersion: String,
-): File {
+): Pair<File, AllPangoLineagesFile> {
     return joinSC2GisaidData(
-        extractedSortedFile,
-        nextcladeNdjsonFiles.nextclade,
-        nextcladeNdjsonFiles.aligned,
-        nextcladeNdjsonFiles.translations.toList(),
-        joinedPath,
-        "joined",
-        nextcladeDatasetVersion,
+        provisionFile = extractedSortedFile,
+        nextcladeFile = nextcladeNdjsonFiles.nextclade,
+        alignedFile = nextcladeNdjsonFiles.aligned,
+        translationFiles = nextcladeNdjsonFiles.translations.toList(),
+        outputDirectory = joinedPath,
+        outputName = "joined",
+        nextcladeDatasetVersion = nextcladeDatasetVersion,
     )
 }
 
@@ -298,7 +315,26 @@ fun mergeUnchangedAndNew(outputDirectory: Path, unchangedFilePath: File, joinedF
     return outputFile
 }
 
-private fun moveFinalFiles(hashesFile: File, provisionFile: File, directoryPath: Path): Pair<File, File> {
+fun mergePangoLineageFiles(
+    outputDirectory: Path,
+    previousAllPangoLineagesFile: AllPangoLineagesFile,
+    newPangoLineagesFile: AllPangoLineagesFile
+): AllPangoLineagesFile {
+    val previousAllPangoLineages = previousAllPangoLineagesFile.read()
+    val newPangoLineages = newPangoLineagesFile.read()
+    val allPangoLineages = previousAllPangoLineages + newPangoLineages
+
+    val outputFile = AllPangoLineagesFile(directory = outputDirectory)
+    outputFile.write(allPangoLineages)
+    return outputFile
+}
+
+private fun moveFinalFiles(
+    hashesFile: File,
+    provisionFile: File,
+    allPangoLineagesFile: AllPangoLineagesFile,
+    directoryPath: Path
+): Pair<File, File> {
     val zoneId = ZoneId.systemDefault()
     val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
     val finalHashesFile = File(
@@ -315,7 +351,13 @@ private fun moveFinalFiles(hashesFile: File, provisionFile: File, directoryPath:
         provisionFile.type,
         provisionFile.compression
     )
-    renameFile(hashesFile.path, finalHashesFile.path)
-    renameFile(provisionFile.path, finalProvisionFile.path)
+    val finalPangoLineagesFile = AllPangoLineagesFile(
+        dataVersion = newDataVersion.toString(),
+        directory = directoryPath
+    )
+
+    renameFile(oldPath = hashesFile.path, newPath = finalHashesFile.path)
+    renameFile(oldPath = provisionFile.path, newPath = finalProvisionFile.path)
+    renameFile(oldPath = allPangoLineagesFile.path, newPath = finalPangoLineagesFile.path)
     return Pair(finalHashesFile, finalProvisionFile)
 }
