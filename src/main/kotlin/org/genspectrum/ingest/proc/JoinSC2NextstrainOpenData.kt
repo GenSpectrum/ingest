@@ -202,6 +202,7 @@ private fun clean(entry: MutableEntry) {
         parseIntegerFields.forEach { parseInteger(it) }
         parseFloatFields.forEach { parseFloat(it) }
         fillInMissingAlignedSequences(fillInMissingAlignedSequencesTemplate)
+        mapPangoLineageToNull(pangoLineageNames)
 
         metadata["died"] = null
         metadata["fullyVaccinated"] = null
