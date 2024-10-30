@@ -90,10 +90,10 @@ fun <T> writeNdjson(
     }
 
     return WriteNdjsonResponse(
-        fun (entry: T) {
+        write = fun (entry: T) {
             queue.put(entry)
         },
-        fun () {
+        close = fun () {
             closed = true
             writingThread.join()
         }

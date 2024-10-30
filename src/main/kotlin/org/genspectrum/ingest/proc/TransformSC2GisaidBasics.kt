@@ -7,7 +7,11 @@ import org.genspectrum.ingest.entry.mapToNull
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
-import org.genspectrum.ingest.util.*
+import org.genspectrum.ingest.util.GeoLocationMapper
+import org.genspectrum.ingest.util.readFile
+import org.genspectrum.ingest.util.readNdjson
+import org.genspectrum.ingest.util.writeFile
+import org.genspectrum.ingest.util.writeNdjson
 import java.nio.file.Path
 
 fun transformSC2GisaidBasics(
@@ -80,7 +84,7 @@ fun transformSC2GisaidBasics(
     return TransformSC2GisaidBasicsResult(outputFile, hashOutputFile)
 }
 
-data class TransformSC2GisaidBasicsResult (
+data class TransformSC2GisaidBasicsResult(
     val dataFile: File,
     val hashesFile: File
 )

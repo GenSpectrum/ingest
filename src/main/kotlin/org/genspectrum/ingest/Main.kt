@@ -3,6 +3,7 @@ package org.genspectrum.ingest
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.parameters.arguments.argument
+import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
@@ -34,17 +35,23 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
 
     override fun run() {
         runSC2GisaidWorkflow(
-            Path(workdirPath),
-            url, user, password,
-            File(
+            workdir = Path(workdirPath),
+            url = url,
+            user = user,
+            password = password,
+            previousProcessed = File(
                 "provision.$previousProcessedVersion",
                 Path(workdirPath).resolve("00_archive"),
                 false,
                 FileType.NDJSON,
                 Compression.ZSTD
             ),
-            Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst"),
-            Path(geoLocationRulesFile)
+            previousAllPangoLineagesFile = AllPangoLineagesFile(
+                previousProcessedVersion,
+                Path(workdirPath).resolve("00_archive"),
+            ),
+            previousHashes = Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst"),
+            geoLocationRulesFile = Path(geoLocationRulesFile)
         )
     }
 }
