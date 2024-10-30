@@ -180,6 +180,7 @@ private fun clean(entry: MutableEntry) {
         parseIntegerFields.forEach { parseInteger(it, true) }
         parseFloatFields.forEach { parseFloat(it) }
         fillInMissingAlignedSequences(fillInMissingAlignedSequencesTemplate)
+        mapPangoLineageToNull(pangoLineageNames)
 
         metadata["genbankAccession"] = null
         metadata["sraAccession"] = null
