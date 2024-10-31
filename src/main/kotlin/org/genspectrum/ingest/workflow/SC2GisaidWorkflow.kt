@@ -337,23 +337,26 @@ private fun moveFinalFiles(
 ): Pair<File, File> {
     val zoneId = ZoneId.systemDefault()
     val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
+    val dataVersionPath = directoryPath.resolve(newDataVersion.toString())
+    Files.createDirectories(dataVersionPath)
+
     val finalHashesFile = File(
         "provision.$newDataVersion.hashes",
-        directoryPath,
+        dataVersionPath,
         hashesFile.sorted,
         hashesFile.type,
         hashesFile.compression
     )
     val finalProvisionFile = File(
         "provision.$newDataVersion",
-        directoryPath,
+        dataVersionPath,
         provisionFile.sorted,
         provisionFile.type,
         provisionFile.compression
     )
     val finalPangoLineagesFile = AllPangoLineagesFile(
         dataVersion = newDataVersion.toString(),
-        directory = directoryPath
+        directory = dataVersionPath
     )
 
     renameFile(oldPath = hashesFile.path, newPath = finalHashesFile.path)

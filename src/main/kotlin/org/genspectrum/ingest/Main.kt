@@ -34,6 +34,9 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
     private val geoLocationRulesFile by argument("geo-location-rules")
 
     override fun run() {
+        val previousProcessedVersionDir = Path(workdirPath)
+            .resolve("00_archive")
+            .resolve(previousProcessedVersion)
         runSC2GisaidWorkflow(
             workdir = Path(workdirPath),
             url = url,
@@ -41,16 +44,16 @@ class SC2GisaidIngestCommand : CliktCommand(name = "ingest-sc2-gisaid") {
             password = password,
             previousProcessed = File(
                 "provision.$previousProcessedVersion",
-                Path(workdirPath).resolve("00_archive"),
+                previousProcessedVersionDir,
                 false,
                 FileType.NDJSON,
                 Compression.ZSTD
             ),
             previousAllPangoLineagesFile = AllPangoLineagesFile(
                 previousProcessedVersion,
-                Path(workdirPath).resolve("00_archive"),
+                previousProcessedVersionDir,
             ),
-            previousHashes = Path(workdirPath).resolve("00_archive/provision.$previousProcessedVersion.hashes.ndjson.zst"),
+            previousHashes = previousProcessedVersionDir.resolve("provision.$previousProcessedVersion.hashes.ndjson.zst"),
             geoLocationRulesFile = Path(geoLocationRulesFile)
         )
     }
