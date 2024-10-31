@@ -174,9 +174,12 @@ private fun joinFiles(
 private fun moveFinalFiles(provisionFile: File, allPangoLineagesFile: AllPangoLineagesFile, directoryPath: Path): File {
     val zoneId = ZoneId.systemDefault()
     val newDataVersion = Instant.now().atZone(zoneId).toEpochSecond()
+    val dataVersionPath = directoryPath.resolve(newDataVersion.toString())
+    Files.createDirectories(dataVersionPath)
+
     val finalProvisionFile = File(
         "provision.$newDataVersion",
-        directoryPath,
+        dataVersionPath,
         provisionFile.sorted,
         provisionFile.type,
         provisionFile.compression
@@ -188,7 +191,7 @@ private fun moveFinalFiles(provisionFile: File, allPangoLineagesFile: AllPangoLi
 
     val finalPangoLineagesFile = AllPangoLineagesFile(
         dataVersion = newDataVersion.toString(),
-        directory = directoryPath
+        directory = dataVersionPath
     )
     renameFile(
         oldPath = allPangoLineagesFile.path,
