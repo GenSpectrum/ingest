@@ -75,6 +75,12 @@ fun joinSC2NextstrainOpenData(
         if (joined.metadata["strain"] == null) {
             continue
         }
+
+        // Samples from RKI do not specify host but it is reasonable to assume that they are from humans.
+        if (joined.metadata["database"] == "rki") {
+            joined.metadata["host"] = "Homo sapiens"
+        }
+
         for (pangoLineageField in pangoLineageNames) {
             val pangoLineage = joined.metadata[pangoLineageField]
             if (pangoLineage is String) {
