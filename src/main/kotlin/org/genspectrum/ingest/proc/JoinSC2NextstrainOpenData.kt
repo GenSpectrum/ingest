@@ -72,6 +72,7 @@ fun joinSC2NextstrainOpenData(
             aminoAcidInsertions,
         )
         clean(joined)
+        addUsherTreeField(joined)
         if (joined.metadata["strain"] == null) {
             continue
         }
@@ -215,4 +216,8 @@ private fun clean(entry: MutableEntry) {
         metadata["hospitalized"] = null
         metadata["nextcladeDatasetVersion"] = null
     }
+}
+
+fun addUsherTreeField(joined: MutableEntry) {
+    joined.metadata["usherTree"] = joined.metadata["genbankAccessionRev"]
 }
