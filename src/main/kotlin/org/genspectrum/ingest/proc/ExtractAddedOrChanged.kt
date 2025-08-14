@@ -25,10 +25,10 @@ fun extractAddedOrChanged(
         .parseObject<ComparisonResult>()
     val addedOrChanged = (changeComparison.added + changeComparison.changed).toSet()
 
-    val reader = readNdjson<SiloEntry>(readFile(inputFile.path))
-    val writer = writeNdjson<SiloEntry>(writeFile(outputFile.path))
+    val reader = readNdjson<MutableEntry>(readFile(inputFile.path))
+    val writer = writeNdjson<MutableEntry>(writeFile(outputFile.path))
     for (entry in reader) {
-        if (addedOrChanged.contains(entry[idColumn])) {
+        if (addedOrChanged.contains(entry.metadata[idColumn])) {
             writer.write(entry)
         }
     }
