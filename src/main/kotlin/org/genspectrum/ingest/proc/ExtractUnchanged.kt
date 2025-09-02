@@ -5,6 +5,7 @@ import org.genspectrum.ingest.entry.MutableEntry
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
+import org.genspectrum.ingest.silo.SiloEntry
 import org.genspectrum.ingest.util.readFile
 import org.genspectrum.ingest.util.readNdjson
 import org.genspectrum.ingest.util.writeFile
@@ -24,10 +25,10 @@ fun extractUnchanged(
         .parseObject<ComparisonResult>()
     val unchanged = changeComparison.unchanged.toSet()
 
-    val reader = readNdjson<MutableEntry>(readFile(inputFile.path))
-    val writer = writeNdjson<MutableEntry>(writeFile(outputFile.path))
+    val reader = readNdjson<SiloEntry>(readFile(inputFile.path))
+    val writer = writeNdjson<SiloEntry>(writeFile(outputFile.path))
     for (entry in reader) {
-        if (unchanged.contains(entry.metadata[idColumn])) {
+        if (unchanged.contains(entry[idColumn])) {
             writer.write(entry)
         }
     }

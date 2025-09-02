@@ -5,6 +5,7 @@ import org.genspectrum.ingest.entry.MutableEntry
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
+import org.genspectrum.ingest.silo.SiloEntry
 import org.genspectrum.ingest.util.readFile
 import org.genspectrum.ingest.util.readNdjson
 import org.genspectrum.ingest.util.writeFile

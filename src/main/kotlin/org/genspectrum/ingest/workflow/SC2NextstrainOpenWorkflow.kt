@@ -4,6 +4,7 @@ import org.genspectrum.ingest.file.AllPangoLineagesFile
 import org.genspectrum.ingest.file.Compression
 import org.genspectrum.ingest.file.File
 import org.genspectrum.ingest.file.FileType
+import org.genspectrum.ingest.proc.exportSiloNdjson
 import org.genspectrum.ingest.proc.fastaToNdjson
 import org.genspectrum.ingest.proc.joinSC2NextstrainOpenData
 import org.genspectrum.ingest.proc.renameFile
@@ -44,10 +45,16 @@ fun runSC2NextstrainOpenWorkflow(workdir: Path) {
 
     println("${LocalDateTime.now()}: Finished joinFiles")
 
+    val siloPath = workdir.resolve("05_silo_ndjson")
+    Files.createDirectories(siloPath)
+    val siloFile = exportSiloNdjsonFile(joinedFile, siloPath)
+
+    println("${LocalDateTime.now()}: Finished exportSiloNdjsonFile")
+
     val finalDestinationPath = workdir.resolve("00_archive")
     Files.createDirectories(finalDestinationPath)
     val finalProvisionFile = moveFinalFiles(
-        provisionFile = joinedFile,
+        provisionFile = siloFile,
         allPangoLineagesFile = allPangoLineagesFile,
         directoryPath = finalDestinationPath
     )
@@ -169,6 +176,10 @@ private fun joinFiles(
         outputDirectory = joinedPath,
         outputName = "processed"
     )
+}
+
+private fun exportSiloNdjsonFile(provisionFile: File, siloNdjsonPath: Path): File {
+    return exportSiloNdjson(provisionFile, siloNdjsonPath)
 }
 
 private fun moveFinalFiles(provisionFile: File, allPangoLineagesFile: AllPangoLineagesFile, directoryPath: Path): File {

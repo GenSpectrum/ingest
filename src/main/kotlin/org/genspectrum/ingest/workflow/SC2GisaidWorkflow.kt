@@ -12,6 +12,7 @@ import org.genspectrum.ingest.file.FileType
 import org.genspectrum.ingest.proc.HashEntry
 import org.genspectrum.ingest.proc.compareHashes
 import org.genspectrum.ingest.proc.concatFiles
+import org.genspectrum.ingest.proc.exportSiloNdjson
 import org.genspectrum.ingest.proc.extractAddedOrChanged
 import org.genspectrum.ingest.proc.extractUnchanged
 import org.genspectrum.ingest.proc.fastaToNdjson
@@ -98,18 +99,24 @@ fun runSC2GisaidWorkflow(
 
     println("${LocalDateTime.now()}: Finished joinFiles")
 
-    val unchangedPath = workdir.resolve("08_unchanged")
+    val siloPath = workdir.resolve("08_silo_ndjson")
+    Files.createDirectories(siloPath)
+    val siloFile = exportSiloNdjsonFile(joinedFilePath, siloPath)
+
+    println("${LocalDateTime.now()}: Finished exportSiloNdjsonFile")
+
+    val unchangedPath = workdir.resolve("09_unchanged")
     Files.createDirectories(unchangedPath)
     val unchangedFilePath = extractUnchangedEntries(unchangedPath, previousProcessed, comparisonFilePath)
 
     println("${LocalDateTime.now()}: Finished extractUnchangedEntries")
 
-    val unchangedAndNewPath = workdir.resolve("09_unchanged_and_new")
+    val unchangedAndNewPath = workdir.resolve("10_unchanged_and_new")
     Files.createDirectories(unchangedAndNewPath)
-    val unchangedAndNewFilePath = mergeUnchangedAndNew(
+    val unchangedAndNewFile = mergeUnchangedAndNew(
         outputDirectory = unchangedAndNewPath,
         unchangedFilePath = unchangedFilePath,
-        joinedFilePath = joinedFilePath
+        joinedFilePath = siloFile
     )
     val allPangoLineagesFile = mergePangoLineageFiles(
         outputDirectory = unchangedAndNewPath,
@@ -123,7 +130,7 @@ fun runSC2GisaidWorkflow(
     Files.createDirectories(finalDestinationPath)
     val (finalHashesFile, finalProvisionFile) = moveFinalFiles(
         hashesFile = hashesFile,
-        provisionFile = unchangedAndNewFilePath,
+        provisionFile = unchangedAndNewFile,
         allPangoLineagesFile = allPangoLineagesFile,
         directoryPath = finalDestinationPath
     )
@@ -307,6 +314,10 @@ private fun joinFiles(
 
 fun extractUnchangedEntries(unchangedPath: Path, previousProcessed: File, comparisonFilePath: Path): File {
     return extractUnchanged("gisaidEpiIsl", comparisonFilePath, previousProcessed, unchangedPath)
+}
+
+private fun exportSiloNdjsonFile(provisionFile: File, siloNdjsonPath: Path): File {
+    return exportSiloNdjson(provisionFile, siloNdjsonPath)
 }
 
 fun mergeUnchangedAndNew(outputDirectory: Path, unchangedFilePath: File, joinedFilePath: File): File {
